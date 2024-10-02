@@ -128,6 +128,13 @@ fun Font(
     getData: () -> ByteArray,
     weight: FontWeight = FontWeight.Normal,
     style: FontStyle = FontStyle.Normal,
+): Font = LoadedFont(identity, getData, weight, style, FontVariation.Settings())
+
+fun Font(
+    identity: String,
+    getData: () -> ByteArray,
+    weight: FontWeight = FontWeight.Normal,
+    style: FontStyle = FontStyle.Normal,
     variationSettings: FontVariation.Settings = FontVariation.Settings(weight, style),
 ): Font = LoadedFont(identity, getData, weight, style, variationSettings)
 
@@ -156,6 +163,19 @@ fun Font(
     data: ByteArray,
     weight: FontWeight = FontWeight.Normal,
     style: FontStyle = FontStyle.Normal,
+): Font = Font(
+    identity = identity,
+    getData = { data },
+    weight = weight,
+    style = style,
+    variationSettings = FontVariation.Settings(),
+)
+
+fun Font(
+    identity: String,
+    data: ByteArray,
+    weight: FontWeight = FontWeight.Normal,
+    style: FontStyle = FontStyle.Normal,
     variationSettings: FontVariation.Settings = FontVariation.Settings(weight, style),
 ): Font = Font(
     identity = identity,
@@ -164,7 +184,6 @@ fun Font(
     style = style,
     variationSettings = variationSettings,
 )
-
 /**
  * Returns a Compose [Typeface] from Skia [SkTypeface].
  *
