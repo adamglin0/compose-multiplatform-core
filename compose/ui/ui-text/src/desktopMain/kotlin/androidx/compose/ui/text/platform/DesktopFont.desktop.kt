@@ -27,9 +27,9 @@ import org.jetbrains.skia.FontWidth
 
 actual sealed class PlatformFont : Font {
     actual abstract val identity: String
-    actual abstract val variationSettings: FontVariation.Settings
+     actual abstract val variationSettings: FontVariation.Settings
     internal actual val cacheKey: String
-        get() = "${this::class.qualifiedName}|$identity|weight=${weight.weight}|style=$style|variationSettings=${variationSettings.settings}"
+        get() = "${this::class.qualifiedName}|$identity|weight=${weight.weight}|style=$style"
 }
 
 /**
@@ -178,8 +178,6 @@ internal actual fun loadTypeface(font: Font): SkTypeface {
         // TODO: replace with FontMgr.makeFromFile(font.file.toString())
         is FileFont -> FontMgr.default.makeFromFile(font.file.toString())
         is LoadedFont -> FontMgr.default.makeFromData(Data.makeFromBytes(font.getData()))
-            ?: error("loadTypeface makeFromData failed")
-
         is SystemFont -> FontMgr.default.matchFamilyStyle(font.identity, font.skFontStyle)
     } ?: (FontMgr.default.legacyMakeTypeface(font.identity, font.skFontStyle)
         ?: error("loadTypeface legacyMakeTypeface failed"))
