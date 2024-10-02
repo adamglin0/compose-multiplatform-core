@@ -31,14 +31,14 @@ import androidx.compose.ui.text.font.GenericFontFamily
 import androidx.compose.ui.text.font.LoadedFontFamily
 import androidx.compose.ui.text.font.Typeface
 import androidx.compose.ui.text.font.createFontFamilyResolver
-import org.jetbrains.skia.FontMgr
+import androidx.compose.ui.unit.Density
 import org.jetbrains.skia.FontMgrWithFallback
 import org.jetbrains.skia.paragraph.FontCollection
-import org.jetbrains.skia.paragraph.TypefaceFontProvider
 import org.jetbrains.skia.paragraph.TypefaceFontProviderWithFallback
 
 expect sealed class PlatformFont() : Font {
     abstract val identity: String
+    abstract val variationSettings: FontVariation.Settings
     internal val cacheKey: String
 }
 
@@ -57,10 +57,11 @@ expect sealed class PlatformFont() : Font {
 class SystemFont(
     override val identity: String,
     override val weight: FontWeight = FontWeight.Normal,
-    override val style: FontStyle = FontStyle.Normal
+    override val style: FontStyle = FontStyle.Normal,
+    override val variationSettings: FontVariation.Settings = FontVariation.Settings(weight, style),
 ) : PlatformFont() {
     override fun toString(): String {
-        return "SystemFont(identity='$identity', weight=$weight, style=$style)"
+        return "SystemFont(identity='$identity', weight=$weight, style=$style, variationSettings=${variationSettings.settings})"
     }
 }
 
@@ -81,7 +82,7 @@ class LoadedFont internal constructor(
     internal val getData: () -> ByteArray,
     override val weight: FontWeight,
     override val style: FontStyle,
-    val variationSettings: FontVariation.Settings,
+    override val variationSettings: FontVariation.Settings = FontVariation.Settings(weight, style),
 ) : PlatformFont() {
     @ExperimentalTextApi
     override val loadingStrategy: FontLoadingStrategy = FontLoadingStrategy.Blocking
@@ -94,19 +95,19 @@ class LoadedFont internal constructor(
         if (identity != other.identity) return false
         if (weight != other.weight) return false
         if (style != other.style) return false
-        return variationSettings == other.variationSettings
+        return variationSettings.settings == other.variationSettings.settings
     }
 
     override fun hashCode(): Int {
         var result = identity.hashCode()
         result = 31 * result + weight.hashCode()
         result = 31 * result + style.hashCode()
-        result = 31 * result + variationSettings.hashCode()
+        result = 31 * result + variationSettings.settings.hashCode()
         return result
     }
 
     override fun toString(): String {
-        return "LoadedFont(identity='$identity', weight=$weight, style=$style, variationSettings=$variationSettings)"
+        return "LoadedFont(identity='$identity', weight=$weight, style=$style, variationSettings=${variationSettings.settings})"
     }
 }
 
@@ -127,7 +128,7 @@ fun Font(
     getData: () -> ByteArray,
     weight: FontWeight = FontWeight.Normal,
     style: FontStyle = FontStyle.Normal,
-    variationSettings: FontVariation.Settings = FontVariation.Settings(weight,style),
+    variationSettings: FontVariation.Settings = FontVariation.Settings(weight, style),
 ): Font = LoadedFont(identity, getData, weight, style, variationSettings)
 
 private class SkiaBackedTypeface(
@@ -155,7 +156,7 @@ fun Font(
     data: ByteArray,
     weight: FontWeight = FontWeight.Normal,
     style: FontStyle = FontStyle.Normal,
-    variationSettings: FontVariation.Settings  = FontVariation.Settings(weight,style),
+    variationSettings: FontVariation.Settings = FontVariation.Settings(weight, style),
 ): Font = Font(
     identity = identity,
     getData = { data },
