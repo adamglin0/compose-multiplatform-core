@@ -29,6 +29,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
 
+expect val variableFontFamily: FontFamily
+
 @Composable
 fun FontFamilies() {
     Column(
@@ -43,7 +45,8 @@ fun FontFamilies() {
             FontFamily.SansSerif,
             FontFamily.Serif,
             FontFamily.Monospace,
-            FontFamily.Cursive
+            FontFamily.Cursive,
+            variableFontFamily,
         )) {
             FontFamilyShowcase(fontFamily)
         }
@@ -56,7 +59,7 @@ private fun FontFamilyShowcase(fontFamily: FontFamily) {
         Text(
             text = "$fontFamily"
         )
-        val textStyle =  MaterialTheme.typography.h3.copy(
+        val textStyle = MaterialTheme.typography.h3.copy(
             fontFamily = fontFamily,
         )
         TextWithMetrics(
