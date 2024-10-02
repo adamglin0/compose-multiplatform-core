@@ -350,3 +350,18 @@ private val GenericFontFamiliesMapping: Map<String, List<String>> by lazy {
             )
     }
 }
+
+internal fun FontVariation.Settings.toSikaFontVariationList(): List<org.jetbrains.skia.FontVariation> {
+    return settings.map { setting ->
+        org.jetbrains.skia.FontVariation(setting.axisName, setting.toVariationValue(null))
+    }
+}
+
+/**
+ * Bind the font variation settings to the Skia typeface.
+ */
+internal fun SkTypeface.bindVariantSettings(variationSettings: FontVariation.Settings): SkTypeface {
+    if (variationSettings.settings.isEmpty()) return this
+    val variations = variationSettings.toSikaFontVariationList()
+    return makeClone(variations.toTypedArray())
+}

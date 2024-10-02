@@ -173,14 +173,17 @@ internal actual fun loadTypeface(font: Font): SkTypeface {
     if (font !is PlatformFont) {
         throw IllegalArgumentException("Unsupported font type: $font")
     }
-    return when (font) {
+    val typeface = when (font) {
         is ResourceFont -> typefaceResource(font.name)
         // TODO: replace with FontMgr.makeFromFile(font.file.toString())
         is FileFont -> FontMgr.default.makeFromFile(font.file.toString())
         is LoadedFont -> FontMgr.default.makeFromData(Data.makeFromBytes(font.getData()))
+            ?: error("loadTypeface makeFromData failed")
+
         is SystemFont -> FontMgr.default.matchFamilyStyle(font.identity, font.skFontStyle)
     } ?: (FontMgr.default.legacyMakeTypeface(font.identity, font.skFontStyle)
         ?: error("loadTypeface legacyMakeTypeface failed"))
+    return typeface.bindVariantSettings(font.variationSettings)
 }
 
 private fun typefaceResource(resourceName: String): SkTypeface {
