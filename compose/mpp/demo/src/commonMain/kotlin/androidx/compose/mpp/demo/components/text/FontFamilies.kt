@@ -19,18 +19,21 @@ package androidx.compose.mpp.demo.components.text
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Slider
+import androidx.compose.material.Switch
 import androidx.compose.material.Text
 import androidx.compose.material3.ElevatedButton
 import androidx.compose.mpp.demo.loadBytes
 import androidx.compose.runtime.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontFamily
@@ -99,8 +102,11 @@ fun VariableFontFamilyDialog(
 ) {
     Dialog(onDismissRequest = onDismissRequest) {
         var robotFlexFontByteArray: ByteArray? by remember { mutableStateOf(null) }
+        var kanitFontByteArray: ByteArray? by remember { mutableStateOf(null) }
+        var useVariableFont by remember { mutableStateOf(true) }
         LaunchedEffect(Unit) {
             robotFlexFontByteArray = loadBytes("RobotoFlex-VariableFont.ttf")
+            kanitFontByteArray = loadBytes("Kanit.ttf")
         }
         var opsz by remember { mutableStateOf(14f) }
         var slnt by remember { mutableStateOf(0) }
@@ -130,13 +136,14 @@ fun VariableFontFamilyDialog(
             FontVariation.Setting("YTLC", YTLC.toFloat()),
             FontVariation.Setting("YTUC", YTUC.toFloat()),
         )
-        val fontFamily = robotFlexFontByteArray?.let {
-            Font(
-                identity = "RobotFlex ${variationSettings.hashCode()}",
-                data = robotFlexFontByteArray!!,
-                variationSettings = variationSettings
-            ).toFontFamily()
-        } ?: FontFamily.Default
+        val fontFamily =
+            (if (useVariableFont) robotFlexFontByteArray else kanitFontByteArray)?.let {
+                Font(
+                    identity = "RobotFlex ${variationSettings.hashCode()}",
+                    data = it,
+                    variationSettings = variationSettings
+                ).toFontFamily()
+            } ?: FontFamily.Default
 
         Column(modifier = Modifier.background(Color.White)) {
             Text(
@@ -144,6 +151,13 @@ fun VariableFontFamilyDialog(
                 fontFamily = fontFamily,
                 fontSize = 32.sp
             )
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Switch(
+                    checked = useVariableFont,
+                    onCheckedChange = { useVariableFont = it }
+                )
+                Text("Use variable font")
+            }
             Text("opsz $opsz")
             Slider(
                 value = opsz.toFloat(),
