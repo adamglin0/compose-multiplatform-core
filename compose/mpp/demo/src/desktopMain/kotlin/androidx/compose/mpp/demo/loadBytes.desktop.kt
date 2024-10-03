@@ -14,10 +14,8 @@
  * limitations under the License.
  */
 
-package androidx.compose.mpp.demo.components.text
+package androidx.compose.mpp.demo
 
-import androidx.compose.ui.text.font.FontFamily
-
-// todo(adamglin)
-actual val variableFontFamily: FontFamily = FontFamily()
-
+actual suspend fun loadBytes(file: String): ByteArray? {
+    return getResourceBytes(file)
+}
