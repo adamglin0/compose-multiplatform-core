@@ -17,7 +17,6 @@
 package androidx.compose.foundation.draganddrop
 
 import android.graphics.Picture
-import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.CacheDrawModifierNode
 import androidx.compose.ui.draw.CacheDrawScope
@@ -32,39 +31,36 @@ import androidx.compose.ui.node.ModifierNodeElement
 import androidx.compose.ui.platform.InspectorInfo
 
 /**
- * A Modifier that allows an element it is applied to to be treated like a source for
- * drag and drop operations. It displays the element dragged as a drag shadow.
+ * A Modifier that allows an element it is applied to to be treated like a source for drag and drop
+ * operations. It displays the element dragged as a drag shadow.
  *
  * Learn how to use [Modifier.dragAndDropSource]:
+ *
  * @sample androidx.compose.foundation.samples.TextDragAndDropSourceSample
- *
- * @param block A lambda with a [DragAndDropSourceScope] as a receiver
- * which provides a [PointerInputScope] to detect the drag gesture, after which a drag and drop
- * gesture can be started with [DragAndDropSourceScope.startTransfer].
- *
+ * @param block A lambda with a [DragAndDropSourceScope] as a receiver which provides a
+ *   [PointerInputScope] to detect the drag gesture, after which a drag and drop gesture can be
+ *   started with [DragAndDropSourceScope.startTransfer].
  */
-@ExperimentalFoundationApi
-fun Modifier.dragAndDropSource(
-    block: suspend DragAndDropSourceScope.() -> Unit
-): Modifier = this then DragAndDropSourceWithDefaultShadowElement(
-    dragAndDropSourceHandler = block,
-)
+fun Modifier.dragAndDropSource(block: suspend DragAndDropSourceScope.() -> Unit): Modifier =
+    this then
+        DragAndDropSourceWithDefaultShadowElement(
+            dragAndDropSourceHandler = block,
+        )
 
-@ExperimentalFoundationApi
 private class DragAndDropSourceWithDefaultShadowElement(
-    /**
-     * @see Modifier.dragAndDropSource
-     */
+    /** @see Modifier.dragAndDropSource */
     val dragAndDropSourceHandler: suspend DragAndDropSourceScope.() -> Unit
 ) : ModifierNodeElement<DragSourceNodeWithDefaultPainter>() {
-    override fun create() = DragSourceNodeWithDefaultPainter(
-        dragAndDropSourceHandler = dragAndDropSourceHandler,
-    )
+    override fun create() =
+        DragSourceNodeWithDefaultPainter(
+            dragAndDropSourceHandler = dragAndDropSourceHandler,
+        )
 
-    override fun update(node: DragSourceNodeWithDefaultPainter) = with(node) {
-        dragAndDropSourceHandler =
-            this@DragAndDropSourceWithDefaultShadowElement.dragAndDropSourceHandler
-    }
+    override fun update(node: DragSourceNodeWithDefaultPainter) =
+        with(node) {
+            dragAndDropSourceHandler =
+                this@DragAndDropSourceWithDefaultShadowElement.dragAndDropSourceHandler
+        }
 
     override fun InspectorInfo.inspectableProperties() {
         name = "dragSourceWithDefaultPainter"
@@ -83,63 +79,58 @@ private class DragAndDropSourceWithDefaultShadowElement(
     }
 }
 
-@ExperimentalFoundationApi
 private class DragSourceNodeWithDefaultPainter(
     var dragAndDropSourceHandler: suspend DragAndDropSourceScope.() -> Unit
 ) : DelegatingNode() {
 
     init {
-        val cacheDrawScopeDragShadowCallback = CacheDrawScopeDragShadowCallback().also {
-            delegate(CacheDrawModifierNode(it::cachePicture))
-        }
+        val cacheDrawScopeDragShadowCallback =
+            CacheDrawScopeDragShadowCallback().also {
+                delegate(CacheDrawModifierNode(it::cachePicture))
+            }
         delegate(
             DragAndDropSourceNode(
-                drawDragDecoration = {
-                    cacheDrawScopeDragShadowCallback.drawDragShadow(this)
-                },
-                dragAndDropSourceHandler = {
-                    dragAndDropSourceHandler.invoke(this)
-                }
+                drawDragDecoration = { cacheDrawScopeDragShadowCallback.drawDragShadow(this) },
+                dragAndDropSourceHandler = { dragAndDropSourceHandler.invoke(this) }
             )
         )
     }
 }
 
-@ExperimentalFoundationApi
 private class CacheDrawScopeDragShadowCallback {
     private var cachedPicture: Picture? = null
 
-    fun drawDragShadow(drawScope: DrawScope) = with(drawScope) {
-        when (val picture = cachedPicture) {
-            null -> throw IllegalArgumentException(
-                "No cached drag shadow. Check if Modifier.cacheDragShadow(painter) was called."
-            )
-
-            else -> drawIntoCanvas { canvas ->
-                canvas.nativeCanvas.drawPicture(picture)
+    fun drawDragShadow(drawScope: DrawScope) =
+        with(drawScope) {
+            when (val picture = cachedPicture) {
+                null ->
+                    throw IllegalArgumentException(
+                        "No cached drag shadow. Check if Modifier.cacheDragShadow(painter) was called."
+                    )
+                else -> drawIntoCanvas { canvas -> canvas.nativeCanvas.drawPicture(picture) }
             }
         }
-    }
 
-    fun cachePicture(scope: CacheDrawScope): DrawResult = with(scope) {
-        val picture = Picture()
-        cachedPicture = picture
-        val width = this.size.width.toInt()
-        val height = this.size.height.toInt()
-        onDrawWithContent {
-            val pictureCanvas =
-                androidx.compose.ui.graphics.Canvas(picture.beginRecording(width, height))
-            draw(
-                density = this,
-                layoutDirection = this.layoutDirection,
-                canvas = pictureCanvas,
-                size = this.size
-            ) {
-                this@onDrawWithContent.drawContent()
+    fun cachePicture(scope: CacheDrawScope): DrawResult =
+        with(scope) {
+            val picture = Picture()
+            cachedPicture = picture
+            val width = this.size.width.toInt()
+            val height = this.size.height.toInt()
+            onDrawWithContent {
+                val pictureCanvas =
+                    androidx.compose.ui.graphics.Canvas(picture.beginRecording(width, height))
+                draw(
+                    density = this,
+                    layoutDirection = this.layoutDirection,
+                    canvas = pictureCanvas,
+                    size = this.size
+                ) {
+                    this@onDrawWithContent.drawContent()
+                }
+                picture.endRecording()
+
+                drawIntoCanvas { canvas -> canvas.nativeCanvas.drawPicture(picture) }
             }
-            picture.endRecording()
-
-            drawIntoCanvas { canvas -> canvas.nativeCanvas.drawPicture(picture) }
         }
-    }
 }

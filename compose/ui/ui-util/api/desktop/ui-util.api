@@ -56,15 +56,25 @@ public final class androidx/compose/ui/util/MathHelpersKt {
 	public static final fun fastCbrt (F)F
 	public static final fun fastCoerceAtLeast (DD)D
 	public static final fun fastCoerceAtLeast (FF)F
+	public static final fun fastCoerceAtLeast (II)I
+	public static final fun fastCoerceAtLeast (JJ)J
 	public static final fun fastCoerceAtMost (DD)D
 	public static final fun fastCoerceAtMost (FF)F
+	public static final fun fastCoerceAtMost (II)I
+	public static final fun fastCoerceAtMost (JJ)J
 	public static final fun fastCoerceIn (DDD)D
 	public static final fun fastCoerceIn (FFF)F
+	public static final fun fastCoerceIn (III)I
+	public static final fun fastCoerceIn (JJJ)J
+	public static final fun fastIsFinite (D)Z
+	public static final fun fastIsFinite (F)Z
 	public static final fun fastMaxOf (FFFF)F
 	public static final fun fastMinOf (FFFF)F
 	public static final fun lerp (FFF)F
 	public static final fun lerp (IIF)I
 	public static final fun lerp (JJF)J
+	public static final fun normalizedAngleCos (F)F
+	public static final fun normalizedAngleSin (F)F
 }
 
 public final class androidx/compose/ui/util/Trace_jbKt {

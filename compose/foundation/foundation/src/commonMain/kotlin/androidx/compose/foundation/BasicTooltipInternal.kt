@@ -16,16 +16,16 @@
 
 package androidx.compose.foundation
 
+import androidx.compose.foundation.gestures.LongPressResult
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
-import androidx.compose.foundation.gestures.waitForUpOrCancellation
+import androidx.compose.foundation.gestures.waitForLongPress
 import androidx.compose.foundation.layout.Box
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.pointer.PointerEventPass
-import androidx.compose.ui.input.pointer.PointerEventTimeoutCancellationException
 import androidx.compose.ui.input.pointer.PointerEventType
 import androidx.compose.ui.input.pointer.PointerType
 import androidx.compose.ui.input.pointer.pointerInput
@@ -44,25 +44,24 @@ import kotlinx.coroutines.launch
 /**
  * BasicTooltipBox that wraps a composable with a tooltip.
  *
- * Tooltip that provides a descriptive message for an anchor.
- * It can be used to call the users attention to the anchor.
+ * Tooltip that provides a descriptive message for an anchor. It can be used to call the users
+ * attention to the anchor.
  *
- * @param positionProvider [PopupPositionProvider] that will be used to place the tooltip
- * relative to the anchor content.
+ * @param positionProvider [PopupPositionProvider] that will be used to place the tooltip relative
+ *   to the anchor content.
  * @param tooltip the composable that will be used to populate the tooltip's content.
  * @param state handles the state of the tooltip's visibility.
  * @param modifier the [Modifier] to be applied to this BasicTooltipBox.
- * @param focusable [Boolean] that determines if the tooltip is focusable. When true,
- * the tooltip will consume touch events while it's shown and will have accessibility
- * focus move to the first element of the component. When false, the tooltip
- * won't consume touch events while it's shown but assistive-tech users will need
- * to swipe or drag to get to the first element of the component.
- * @param enableUserInput [Boolean] which determines if this BasicTooltipBox will handle
- * long press and mouse hover to trigger the tooltip through the state provided.
+ * @param focusable [Boolean] that determines if the tooltip is focusable. When true, the tooltip
+ *   will consume touch events while it's shown and will have accessibility focus move to the first
+ *   element of the component. When false, the tooltip won't consume touch events while it's shown
+ *   but assistive-tech users will need to swipe or drag to get to the first element of the
+ *   component.
+ * @param enableUserInput [Boolean] which determines if this BasicTooltipBox will handle long press
+ *   and mouse hover to trigger the tooltip through the state provided.
  * @param content the composable that the tooltip will anchor to.
  */
 @Composable
-@ExperimentalFoundationApi
 internal fun BasicTooltipBoxInternal(
     positionProvider: PopupPositionProvider,
     tooltip: @Composable () -> Unit,
@@ -92,13 +91,10 @@ internal fun BasicTooltipBoxInternal(
         )
     }
 
-    DisposableEffect(state) {
-        onDispose { state.onDispose() }
-    }
+    DisposableEffect(state) { onDispose { state.onDispose() } }
 }
 
 @Composable
-@OptIn(ExperimentalFoundationApi::class)
 private fun WrappedAnchor(
     enableUserInput: Boolean,
     state: BasicTooltipState,
@@ -107,14 +103,17 @@ private fun WrappedAnchor(
 ) {
     val scope = rememberCoroutineScope()
     val longPressLabel = BasicTooltipStrings.label()
-    Box(modifier = modifier
-            .handleGestures(enableUserInput, state)
-            .anchorSemantics(longPressLabel, enableUserInput, state, scope)
-    ) { content() }
+    Box(
+        modifier =
+            modifier
+                .handleGestures(enableUserInput, state)
+                .anchorSemantics(longPressLabel, enableUserInput, state, scope)
+    ) {
+        content()
+    }
 }
 
 @Composable
-@OptIn(ExperimentalFoundationApi::class)
 private fun TooltipPopup(
     positionProvider: PopupPositionProvider,
     state: BasicTooltipState,
@@ -134,43 +133,38 @@ private fun TooltipPopup(
         properties = PopupProperties(focusable = false),
     ) {
         Box(
-            modifier = Modifier.semantics {
-                liveRegion = LiveRegionMode.Assertive
-                paneTitle = tooltipDescription
-            }
-        ) { content() }
+            modifier =
+                Modifier.semantics {
+                    liveRegion = LiveRegionMode.Assertive
+                    paneTitle = tooltipDescription
+                }
+        ) {
+            content()
+        }
     }
 }
 
-@OptIn(ExperimentalFoundationApi::class)
-private fun Modifier.handleGestures(
-    enabled: Boolean,
-    state: BasicTooltipState
-): Modifier =
+private fun Modifier.handleGestures(enabled: Boolean, state: BasicTooltipState): Modifier =
     if (enabled) {
         this.pointerInput(state) {
                 coroutineScope {
                     awaitEachGesture {
-                        val longPressTimeout = viewConfiguration.longPressTimeoutMillis
                         val pass = PointerEventPass.Initial
 
                         // wait for the first down press
                         val inputType = awaitFirstDown(pass = pass).type
 
                         if (inputType == PointerType.Touch || inputType == PointerType.Stylus) {
-                            try {
-                                // listen to if there is up gesture
-                                // within the longPressTimeout limit
-                                withTimeout(longPressTimeout) {
-                                    waitForUpOrCancellation(pass = pass)
-                                }
-                            } catch (_: PointerEventTimeoutCancellationException) {
+                            val longPress = waitForLongPress(pass = pass)
+                            if (longPress is LongPressResult.Success) {
                                 // handle long press - Show the tooltip
                                 launch { state.show(MutatePriority.UserInput) }
 
                                 // consume the children's click handling
                                 val changes = awaitPointerEvent(pass = pass).changes
-                                for (i in 0 until changes.size) { changes[i].consume() }
+                                for (i in 0 until changes.size) {
+                                    changes[i].consume()
+                                }
                             }
                         }
                     }
@@ -189,7 +183,6 @@ private fun Modifier.handleGestures(
                                     PointerEventType.Enter -> {
                                         launch { state.show(MutatePriority.UserInput) }
                                     }
-
                                     PointerEventType.Exit -> {
                                         state.dismiss()
                                     }
@@ -201,7 +194,6 @@ private fun Modifier.handleGestures(
             }
     } else this
 
-@OptIn(ExperimentalFoundationApi::class)
 private fun Modifier.anchorSemantics(
     label: String,
     enabled: Boolean,
@@ -210,14 +202,14 @@ private fun Modifier.anchorSemantics(
 ): Modifier =
     if (enabled) {
         this.semantics(mergeDescendants = true) {
-                onLongClick(
-                    label = label,
-                    action = {
-                        scope.launch { state.show() }
-                        true
-                    }
-                )
-            }
+            onLongClick(
+                label = label,
+                action = {
+                    scope.launch { state.show() }
+                    true
+                }
+            )
+        }
     } else this
 
 internal expect object BasicTooltipStrings {

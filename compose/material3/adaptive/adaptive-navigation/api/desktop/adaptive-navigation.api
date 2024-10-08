@@ -29,6 +29,8 @@ public abstract interface class androidx/compose/material3/adaptive/navigation/T
 	public static synthetic fun navigateBack--pgVGNs$default (Landroidx/compose/material3/adaptive/navigation/ThreePaneScaffoldNavigator;Ljava/lang/String;ILjava/lang/Object;)Z
 	public abstract fun navigateTo (Landroidx/compose/material3/adaptive/layout/ThreePaneScaffoldRole;Ljava/lang/Object;)V
 	public static synthetic fun navigateTo$default (Landroidx/compose/material3/adaptive/navigation/ThreePaneScaffoldNavigator;Landroidx/compose/material3/adaptive/layout/ThreePaneScaffoldRole;Ljava/lang/Object;ILjava/lang/Object;)V
+	public abstract fun peekPreviousScaffoldValue--pgVGNs (Ljava/lang/String;)Landroidx/compose/material3/adaptive/layout/ThreePaneScaffoldValue;
+	public static synthetic fun peekPreviousScaffoldValue--pgVGNs$default (Landroidx/compose/material3/adaptive/navigation/ThreePaneScaffoldNavigator;Ljava/lang/String;ILjava/lang/Object;)Landroidx/compose/material3/adaptive/layout/ThreePaneScaffoldValue;
 	public abstract fun setDestinationHistoryAware (Z)V
 }
 

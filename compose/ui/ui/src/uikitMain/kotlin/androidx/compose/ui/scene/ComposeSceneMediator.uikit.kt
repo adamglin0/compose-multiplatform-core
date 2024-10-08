@@ -590,7 +590,9 @@ internal class ComposeSceneMediator(
         interopContainer.dispose()
     }
 
-    private fun setNeedsRedraw() = redrawer.setNeedsRedraw()
+    private fun setNeedsRedraw() {
+        redrawer.setNeedsRedraw()
+    }
 
     /**
      * Updates the [ComposeScene] with the properties derived from the [view].

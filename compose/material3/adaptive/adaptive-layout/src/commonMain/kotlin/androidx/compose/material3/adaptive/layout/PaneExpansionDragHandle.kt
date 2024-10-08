@@ -30,16 +30,30 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.unit.dp
 
+/**
+ * A default, basic non-customizable implementation of pane expansion drag handle. Note that this
+ * implementation will be deprecated in favor of the corresponding Material3 implementation when
+ * it's available.
+ */
 @ExperimentalMaterial3AdaptiveApi
 @Composable
-// TODO(b/327637983): Implement this as a customizable component.
-internal fun PaneExpansionDragHandle(
+// TODO(b/327637983): Implement this as a customizable component as a Material3 component.
+fun ThreePaneScaffoldScope.PaneExpansionDragHandle(
     state: PaneExpansionState,
     color: Color,
     modifier: Modifier = Modifier,
 ) {
+    val animationProgress = { motionProgress }
     Box(
-        modifier = modifier.paneExpansionDragHandle(state).size(24.dp, 48.dp),
+        modifier =
+            modifier
+                .paneExpansionDragHandle(state)
+                .size(24.dp, 48.dp)
+                .animateWithFading(
+                    enabled = true,
+                    animateFraction = animationProgress,
+                    lookaheadScope = this
+                ),
         contentAlignment = Alignment.Center
     ) {
         Box(
@@ -60,4 +74,5 @@ internal fun Modifier.paneExpansionDragHandle(state: PaneExpansionState): Modifi
         )
         .systemGestureExclusion()
 
+// TODO: Remove once commonized https://youtrack.jetbrains.com/issue/CMP-6647
 internal expect fun Modifier.systemGestureExclusion(): Modifier

@@ -59,7 +59,7 @@ fun ListDetailPaneScaffoldExample() {
         detailPane = {
             AnimatedPane {
                 // Show the detail pane content if selected item is available
-                navigator.currentDestination?.content?.let {
+                navigator.currentDestination?.contentKey?.let {
                     Box(
                         modifier = Modifier.fillMaxSize(),
                         contentAlignment = Alignment.Center

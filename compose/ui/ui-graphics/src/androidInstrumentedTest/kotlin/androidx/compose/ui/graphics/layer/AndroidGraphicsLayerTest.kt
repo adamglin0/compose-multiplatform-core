@@ -630,10 +630,10 @@ class AndroidGraphicsLayerTest {
                             drawRect(
                                 Color.Red,
                                 topLeft =
-                                Offset(
-                                    this.size.width / 2f - rectSize / 2f,
-                                    this.size.height / 2 - rectSize / 2f
-                                ),
+                                    Offset(
+                                        this.size.width / 2f - rectSize / 2f,
+                                        this.size.height / 2 - rectSize / 2f
+                                    ),
                                 Size(rectSize.toFloat(), rectSize.toFloat())
                             )
                         }
@@ -1432,9 +1432,9 @@ class AndroidGraphicsLayerTest {
                 val fullSize = size
                 val layerSize =
                     Size(
-                        fullSize.width.roundToInt() - inset * 2,
-                        fullSize.height.roundToInt() - inset * 2
-                    )
+                            fullSize.width.roundToInt() - inset * 2,
+                            fullSize.height.roundToInt() - inset * 2
+                        )
                         .toIntSize()
 
                 val layer =

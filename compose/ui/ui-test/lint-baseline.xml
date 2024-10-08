@@ -1,5 +1,23 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<issues format="6" by="lint 8.4.0-alpha12" type="baseline" client="gradle" dependencies="false" name="AGP (8.4.0-alpha12)" variant="all" version="8.4.0-alpha12">
+<issues format="6" by="lint 8.7.0-alpha02" type="baseline" client="gradle" dependencies="false" name="AGP (8.7.0-alpha02)" variant="all" version="8.7.0-alpha02">
+
+    <issue
+        id="NewApi"
+        message="This Kotlin extension function will be hidden by `java.util.SequencedCollection` starting in API 35"
+        errorLine1="        return mutableListOf&lt;E>().also { result -> repeat(n) { result.add(removeFirstKt()) } }"
+        errorLine2="                                                                          ~~~~~~~~~~~~~~~">
+        <location
+            file="src/androidUnitTest/kotlin/androidx/compose/ui/test/inputdispatcher/KeyAndMouseEventsTest.kt"/>
+    </issue>
+
+    <issue
+        id="NewApi"
+        message="This Kotlin extension function will be hidden by `java.util.SequencedCollection` starting in API 35"
+        errorLine1="        return mutableListOf&lt;E>().also { result -> repeat(n) { result.add(removeFirstKt()) } }"
+        errorLine2="                                                                          ~~~~~~~~~~~~~~~">
+        <location
+            file="src/androidUnitTest/kotlin/androidx/compose/ui/test/inputdispatcher/MouseEventsTest.kt"/>
+    </issue>
 
     <issue
         id="BanThreadSleep"
@@ -152,24 +170,6 @@
         errorLine2="                         ~~~~~~~~~~">
         <location
             file="src/commonMain/kotlin/androidx/compose/ui/test/SemanticsNodeInteraction.kt"/>
-    </issue>
-
-    <issue
-        id="PrimitiveInCollection"
-        message="field states with type Map&lt;Integer, InputDispatcherState>: replace with IntObjectMap"
-        errorLine1="    /**"
-        errorLine2="    ^">
-        <location
-            file="src/commonMain/kotlin/androidx/compose/ui/test/TestOwner.kt"/>
-    </issue>
-
-    <issue
-        id="PrimitiveInCollection"
-        message="return type Map&lt;Integer, InputDispatcherState> of getStates$lint_module: replace with IntObjectMap"
-        errorLine1="    internal val states = mutableMapOf&lt;Int, InputDispatcherState>()"
-        errorLine2="                 ~~~~~~">
-        <location
-            file="src/commonMain/kotlin/androidx/compose/ui/test/TestOwner.kt"/>
     </issue>
 
     <issue

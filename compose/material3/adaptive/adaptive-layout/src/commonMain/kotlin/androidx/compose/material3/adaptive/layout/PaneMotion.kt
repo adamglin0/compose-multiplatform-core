@@ -16,7 +16,6 @@
 
 package androidx.compose.material3.adaptive.layout
 
-import androidx.annotation.VisibleForTesting
 import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.ExitTransition
 import androidx.compose.animation.core.FiniteAnimationSpec
@@ -26,31 +25,158 @@ import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.material3.adaptive.ExperimentalMaterial3AdaptiveApi
 import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.layout.LookaheadScope
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
+import androidx.compose.ui.util.fastForEach
+import androidx.compose.ui.util.fastForEachIndexed
+import androidx.compose.ui.util.fastForEachReversed
 import kotlin.jvm.JvmInline
 import kotlin.math.max
 import kotlin.math.min
 
+/**
+ * Scope for performing pane motions within a pane scaffold. It provides the spec and necessary info
+ * to decide a pane's [EnterTransition] and [ExitTransition], as well as how bounds morphing will be
+ * performed.
+ */
+@Suppress("PrimitiveInCollection") // No way to get underlying Long of IntSize or IntOffset
 @ExperimentalMaterial3AdaptiveApi
-internal interface PaneMotionScope : LookaheadScope {
+sealed interface PaneScaffoldMotionScope {
+    /**
+     * The position animation spec of the associated pane to the scope. [AnimatedPane] will use this
+     * value to perform pane animations during scaffold state changes.
+     */
     val positionAnimationSpec: FiniteAnimationSpec<IntOffset>
+
+    /**
+     * The size animation spec of the associated pane to the scope. [AnimatedPane] will use this
+     * value to perform pane animations during scaffold state changes.
+     */
     val sizeAnimationSpec: FiniteAnimationSpec<IntSize>
+
+    /**
+     * The delayed position animation spec of the associated pane to the scope. [AnimatedPane] will
+     * use this value to perform pane position animations during scaffold state changes when an
+     * animation needs to be played with a delay.
+     */
     val delayedPositionAnimationSpec: FiniteAnimationSpec<IntOffset>
-    val slideInFromLeftOffset: Int
-    val slideInFromRightOffset: Int
-    val slideOutToLeftOffset: Int
-    val slideOutToRightOffset: Int
-    val motionProgress: () -> Float
+
+    /**
+     * The scaffold's current size. Note that the value of the field will only be updated during
+     * measurement of the scaffold and before the first measurement the value will be
+     * [IntSize.Zero].
+     *
+     * Note that this field is not backed by snapshot states so it's supposed to be only read
+     * proactively by the motion logic "on-the-fly" when the scaffold motion is happening.
+     */
+    val scaffoldSize: IntSize
+
+    /**
+     * [PaneMotionData] of all panes in the scaffold corresponding to the scaffold's current state
+     * transition and motion settings, listed in panes' horizontal order.
+     *
+     * The size of position values of [PaneMotionData] in the list will only be update during
+     * measurement of the scaffold and before the first measurement their values will be
+     * [IntSize.Zero] or [IntOffset.Zero].
+     *
+     * Note that the aforementioned fields are not backed by snapshot states so they are supposed to
+     * be only read proactively by the motion logic "on-the-fly" when the scaffold motion is
+     * happening.
+     */
+    val paneMotionDataList: List<PaneMotionData>
 }
 
+/**
+ * A class to collect motion-relevant data of a specific pane.
+ *
+ * @property motion The specified [PaneMotion] of the pane.
+ * @property currentSize The current measured size of the pane that it should animate from.
+ * @property currentPosition The current placement of the pane that it should animate from, with the
+ *   offset relative to the associated pane scaffold's local coordinates.
+ * @property targetSize The target measured size of the pane that it should animate to.
+ * @property targetPosition The target placement of the pane that it should animate to, with the
+ *   offset relative to the associated pane scaffold's local coordinates.
+ */
 @ExperimentalMaterial3AdaptiveApi
-internal interface PaneMotion {
-    val PaneMotionScope.enterTransition: EnterTransition
-    val PaneMotionScope.exitTransition: ExitTransition
-    val PaneMotionScope.animateBoundsModifier: Modifier
+class PaneMotionData internal constructor() {
+    var motion: PaneMotion = DefaultPaneMotion.NoMotion
+        internal set
+
+    var currentSize: IntSize = IntSize.Zero
+        internal set
+
+    var currentPosition: IntOffset = IntOffset.Zero
+        internal set
+
+    var targetSize: IntSize = IntSize.Zero
+        internal set
+
+    var targetPosition: IntOffset = IntOffset.Zero
+        internal set
+}
+
+@OptIn(ExperimentalMaterial3AdaptiveApi::class)
+internal val PaneScaffoldMotionScope.slideInFromLeftOffset: Int
+    get() {
+        // Find the right edge offset of the rightmost pane that enters from its left
+        paneMotionDataList.fastForEachReversed {
+            if (
+                it.motion == DefaultPaneMotion.EnterFromLeft ||
+                    it.motion == DefaultPaneMotion.EnterFromLeftDelayed
+            ) {
+                return -it.targetPosition.x - it.targetSize.width
+            }
+        }
+        return 0
+    }
+
+@OptIn(ExperimentalMaterial3AdaptiveApi::class)
+internal val PaneScaffoldMotionScope.slideInFromRightOffset: Int
+    get() {
+        // Find the left edge offset of the leftmost pane that enters from its right
+        paneMotionDataList.fastForEach {
+            if (
+                it.motion == DefaultPaneMotion.EnterFromRight ||
+                    it.motion == DefaultPaneMotion.EnterFromRightDelayed
+            ) {
+                return scaffoldSize.width - it.targetPosition.x
+            }
+        }
+        return 0
+    }
+
+@OptIn(ExperimentalMaterial3AdaptiveApi::class)
+internal val PaneScaffoldMotionScope.slideOutToLeftOffset: Int
+    get() {
+        // Find the right edge offset of the rightmost pane that exits to its left
+        paneMotionDataList.fastForEachReversed {
+            if (it.motion == DefaultPaneMotion.ExitToLeft) {
+                return -it.currentPosition.x - it.currentSize.width
+            }
+        }
+        return 0
+    }
+
+@OptIn(ExperimentalMaterial3AdaptiveApi::class)
+internal val PaneScaffoldMotionScope.slideOutToRightOffset: Int
+    get() {
+        // Find the left edge offset of the leftmost pane that exits to its right
+        paneMotionDataList.fastForEach {
+            if (it.motion == DefaultPaneMotion.ExitToRight) {
+                return scaffoldSize.width - it.currentPosition.x
+            }
+        }
+        return 0
+    }
+
+/** Interface to specify a custom pane enter/exit motion when a pane's visibility changes. */
+@ExperimentalMaterial3AdaptiveApi
+interface PaneMotion {
+    /** The [EnterTransition] of a pane under the given [PaneScaffoldMotionScope] */
+    val PaneScaffoldMotionScope.enterTransition: EnterTransition
+
+    /** The [ExitTransition] of a pane under the given [PaneScaffoldMotionScope] */
+    val PaneScaffoldMotionScope.exitTransition: ExitTransition
 }
 
 @ExperimentalMaterial3AdaptiveApi
@@ -69,7 +195,7 @@ internal value class DefaultPaneMotion private constructor(val value: Int) : Pan
         val ExitWithShrink = DefaultPaneMotion(9)
     }
 
-    override val PaneMotionScope.enterTransition: EnterTransition
+    override val PaneScaffoldMotionScope.enterTransition: EnterTransition
         get() =
             when (this@DefaultPaneMotion) {
                 EnterFromLeft ->
@@ -86,7 +212,7 @@ internal value class DefaultPaneMotion private constructor(val value: Int) : Pan
                 else -> EnterTransition.None
             }
 
-    override val PaneMotionScope.exitTransition: ExitTransition
+    override val PaneScaffoldMotionScope.exitTransition: ExitTransition
         get() =
             when (this@DefaultPaneMotion) {
                 ExitToLeft -> slideOutHorizontally(positionAnimationSpec) { slideOutToLeftOffset }
@@ -96,16 +222,6 @@ internal value class DefaultPaneMotion private constructor(val value: Int) : Pan
                     shrinkHorizontally(sizeAnimationSpec, Alignment.CenterHorizontally)
                 else -> ExitTransition.None
             }
-
-    override val PaneMotionScope.animateBoundsModifier: Modifier
-        get() =
-            Modifier.animateBounds(
-                motionProgress,
-                sizeAnimationSpec,
-                positionAnimationSpec,
-                this,
-                this@DefaultPaneMotion == AnimateBounds
-            )
 
     override fun toString(): String =
         when (this) {
@@ -124,15 +240,14 @@ internal value class DefaultPaneMotion private constructor(val value: Int) : Pan
 }
 
 @ExperimentalMaterial3AdaptiveApi
-@VisibleForTesting
 internal fun <T> calculatePaneMotion(
     previousScaffoldValue: PaneScaffoldValue<T>,
     currentScaffoldValue: PaneScaffoldValue<T>,
     paneOrder: PaneScaffoldHorizontalOrder<T>
-): Array<PaneMotion> {
+): List<PaneMotion> {
     val numOfPanes = paneOrder.size
     val paneStatus = Array(numOfPanes) { PaneMotionStatus.Hidden }
-    val paneMotions = Array<PaneMotion>(numOfPanes) { DefaultPaneMotion.NoMotion }
+    val paneMotions = MutableList<PaneMotion>(numOfPanes) { DefaultPaneMotion.NoMotion }
     var firstShownPaneIndex = numOfPanes
     var firstEnteringPaneIndex = numOfPanes
     var lastShownPaneIndex = -1

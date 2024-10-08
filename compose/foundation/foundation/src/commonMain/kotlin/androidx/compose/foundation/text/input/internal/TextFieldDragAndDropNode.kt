@@ -24,7 +24,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.platform.ClipEntry
 import androidx.compose.ui.platform.ClipMetadata
 
-@OptIn(ExperimentalFoundationApi::class)
+@ExperimentalFoundationApi
 internal expect fun textFieldDragAndDropNode(
     hintMediaTypes: () -> Set<MediaType>,
     onDrop: (clipEntry: ClipEntry, clipMetadata: ClipMetadata) -> Boolean,

@@ -17,6 +17,7 @@
 package androidx.compose.foundation.layout
 
 import androidx.annotation.FloatRange
+import androidx.compose.foundation.layout.internal.requirePrecondition
 import androidx.compose.runtime.Stable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.IntrinsicMeasurable
@@ -38,35 +39,35 @@ import androidx.compose.ui.util.fastRoundToInt
  * incoming constraints in the following order: [Constraints.maxWidth], [Constraints.maxHeight],
  * [Constraints.minWidth], [Constraints.minHeight] if [matchHeightConstraintsFirst] is `false`
  * (which is the default), or [Constraints.maxHeight], [Constraints.maxWidth],
- * [Constraints.minHeight], [Constraints.minWidth] if [matchHeightConstraintsFirst] is `true`.
- * The size in the other dimension is determined by the aspect ratio. The combinations will be
- * tried in this order until one non-empty is found to satisfy the constraints. If no valid
- * size is obtained this way, it means that there is no non-empty size satisfying both
- * the constraints and the aspect ratio, so the constraints will not be respected
- * and the content will be sized such that the [Constraints.maxWidth] or [Constraints.maxHeight]
- * is matched (depending on [matchHeightConstraintsFirst]).
+ * [Constraints.minHeight], [Constraints.minWidth] if [matchHeightConstraintsFirst] is `true`. The
+ * size in the other dimension is determined by the aspect ratio. The combinations will be tried in
+ * this order until one non-empty is found to satisfy the constraints. If no valid size is obtained
+ * this way, it means that there is no non-empty size satisfying both the constraints and the aspect
+ * ratio, so the constraints will not be respected and the content will be sized such that the
+ * [Constraints.maxWidth] or [Constraints.maxHeight] is matched (depending on
+ * [matchHeightConstraintsFirst]).
  *
  * Example usage:
- * @sample androidx.compose.foundation.layout.samples.SimpleAspectRatio
  *
+ * @sample androidx.compose.foundation.layout.samples.SimpleAspectRatio
  * @param ratio the desired width/height positive ratio
  */
 @Stable
 fun Modifier.aspectRatio(
-    @FloatRange(from = 0.0, fromInclusive = false)
-    ratio: Float,
+    @FloatRange(from = 0.0, fromInclusive = false) ratio: Float,
     matchHeightConstraintsFirst: Boolean = false
-) = this.then(
-    AspectRatioElement(
-        ratio,
-        matchHeightConstraintsFirst,
-        debugInspectorInfo {
-            name = "aspectRatio"
-            properties["ratio"] = ratio
-            properties["matchHeightConstraintsFirst"] = matchHeightConstraintsFirst
-        }
+) =
+    this.then(
+        AspectRatioElement(
+            ratio,
+            matchHeightConstraintsFirst,
+            debugInspectorInfo {
+                name = "aspectRatio"
+                properties["ratio"] = ratio
+                properties["matchHeightConstraintsFirst"] = matchHeightConstraintsFirst
+            }
+        )
     )
-)
 
 private class AspectRatioElement(
     val aspectRatio: Float,
@@ -74,14 +75,11 @@ private class AspectRatioElement(
     val inspectorInfo: InspectorInfo.() -> Unit
 ) : ModifierNodeElement<AspectRatioNode>() {
     init {
-        require(aspectRatio > 0) { "aspectRatio $aspectRatio must be > 0" }
+        requirePrecondition(aspectRatio > 0) { "aspectRatio $aspectRatio must be > 0" }
     }
 
     override fun create(): AspectRatioNode {
-        return AspectRatioNode(
-            aspectRatio,
-            matchHeightConstraintsFirst
-        )
+        return AspectRatioNode(aspectRatio, matchHeightConstraintsFirst)
     }
 
     override fun update(node: AspectRatioNode) {
@@ -89,7 +87,9 @@ private class AspectRatioElement(
         node.matchHeightConstraintsFirst = matchHeightConstraintsFirst
     }
 
-    override fun InspectorInfo.inspectableProperties() { inspectorInfo() }
+    override fun InspectorInfo.inspectableProperties() {
+        inspectorInfo()
+    }
 
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
@@ -111,52 +111,55 @@ private class AspectRatioNode(
         constraints: Constraints
     ): MeasureResult {
         val size = constraints.findSize()
-        val wrappedConstraints = if (size != IntSize.Zero) {
-            Constraints.fixed(size.width, size.height)
-        } else {
-            constraints
-        }
+        val wrappedConstraints =
+            if (size != IntSize.Zero) {
+                Constraints.fixed(size.width, size.height)
+            } else {
+                constraints
+            }
         val placeable = measurable.measure(wrappedConstraints)
-        return layout(placeable.width, placeable.height) {
-            placeable.placeRelative(0, 0)
-        }
+        return layout(placeable.width, placeable.height) { placeable.placeRelative(0, 0) }
     }
 
     override fun IntrinsicMeasureScope.minIntrinsicWidth(
         measurable: IntrinsicMeasurable,
         height: Int
-    ) = if (height != Constraints.Infinity) {
-        (height * aspectRatio).fastRoundToInt()
-    } else {
-        measurable.minIntrinsicWidth(height)
-    }
+    ) =
+        if (height != Constraints.Infinity) {
+            (height * aspectRatio).fastRoundToInt()
+        } else {
+            measurable.minIntrinsicWidth(height)
+        }
 
     override fun IntrinsicMeasureScope.maxIntrinsicWidth(
         measurable: IntrinsicMeasurable,
         height: Int
-    ) = if (height != Constraints.Infinity) {
-        (height * aspectRatio).fastRoundToInt()
-    } else {
-        measurable.maxIntrinsicWidth(height)
-    }
+    ) =
+        if (height != Constraints.Infinity) {
+            (height * aspectRatio).fastRoundToInt()
+        } else {
+            measurable.maxIntrinsicWidth(height)
+        }
 
     override fun IntrinsicMeasureScope.minIntrinsicHeight(
         measurable: IntrinsicMeasurable,
         width: Int
-    ) = if (width != Constraints.Infinity) {
-        (width / aspectRatio).fastRoundToInt()
-    } else {
-        measurable.minIntrinsicHeight(width)
-    }
+    ) =
+        if (width != Constraints.Infinity) {
+            (width / aspectRatio).fastRoundToInt()
+        } else {
+            measurable.minIntrinsicHeight(width)
+        }
 
     override fun IntrinsicMeasureScope.maxIntrinsicHeight(
         measurable: IntrinsicMeasurable,
         width: Int
-    ) = if (width != Constraints.Infinity) {
-        (width / aspectRatio).fastRoundToInt()
-    } else {
-        measurable.maxIntrinsicHeight(width)
-    }
+    ) =
+        if (width != Constraints.Infinity) {
+            (width / aspectRatio).fastRoundToInt()
+        } else {
+            measurable.maxIntrinsicHeight(width)
+        }
 
     private fun Constraints.findSize(): IntSize {
         if (!matchHeightConstraintsFirst) {
