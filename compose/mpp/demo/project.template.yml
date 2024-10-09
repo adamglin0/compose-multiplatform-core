@@ -31,7 +31,11 @@ targets:
     sources:
       # we don't have swift sources, but need a real path here (it doesn't matter what folder).
       # Xcode copies the files from this path. We need to ensure no file duplicates.
-      - "src/swift"
+      - path: "src/swift"
+      - path: "src/commonMain/resources/RobotoFlex-VariableFont.ttf"
+        buildPhase: resources
+        resourceTags:
+          - font
     settings:
       LIBRARY_SEARCH_PATHS: "$(inherited)"
       ENABLE_BITCODE: "YES"
