@@ -23,11 +23,11 @@ import org.khronos.webgl.Int8Array
 import org.w3c.fetch.Response
 
 
-actual suspend fun loadVariableFont(): ByteArray? {
-    return fetch("RobotoFlex-VariableFont.ttf").arrayBuffer().await().asByteArray()
+actual suspend fun loadResource(file: String): ByteArray? {
+    return fetch(file).arrayBuffer().await().asByteArray()
 }
 
-private suspend fun fetch( url: String): Response =
+private suspend fun fetch(url: String): Response =
     window.fetch(url).await()
 
 @Suppress("CAST_NEVER_SUCCEEDS")

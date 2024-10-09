@@ -21,9 +21,12 @@ import platform.Foundation.NSBundle
 import platform.Foundation.NSData
 import platform.Foundation.dataWithContentsOfFile
 
-actual suspend fun loadVariableFont(): ByteArray? {
-    val filePath = NSBundle.mainBundle.pathForResource("RobotoFlex-VariableFont", "ttf")
-    val fileData = NSData.dataWithContentsOfFile(filePath!!)
-        ?: throw Error("failed reading RobotoFlex-VariableFont.ttf")
+actual suspend fun loadResource(file: String): ByteArray? {
+    val lastDotIndex = file.lastIndexOf('.')
+    val name = file.substring(0, lastDotIndex)
+    val extension = file.substring(lastDotIndex + 1)
+    val filePath = NSBundle.mainBundle.pathForResource(name, extension)
+    val fileData = filePath?.let { NSData.dataWithContentsOfFile(it) }
+        ?: throw Error("failed reading $file")
     return fileData.bytes!!.readBytes(fileData.length.toInt())
 }

@@ -16,10 +16,7 @@
 
 package androidx.compose.mpp.demo.components.text
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.fillMaxHeight
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.Slider
@@ -31,7 +28,6 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontVariation
 import androidx.compose.ui.text.font.toFontFamily
@@ -42,7 +38,7 @@ import androidx.compose.ui.unit.sp
 fun VariableFonts() {
     var robotFlexFontByteArray: ByteArray? by remember { mutableStateOf(null) }
     LaunchedEffect(Unit) {
-        robotFlexFontByteArray = loadVariableFont()
+        robotFlexFontByteArray = loadResource("RobotoFlex-VariableFont.ttf")
     }
     var opsz by remember { mutableStateOf(14f) }
     var slnt by remember { mutableStateOf(0) }
@@ -173,4 +169,4 @@ fun VariableFonts() {
     }
 }
 
-expect suspend fun loadVariableFont(): ByteArray?
+expect suspend fun loadResource(file: String): ByteArray?

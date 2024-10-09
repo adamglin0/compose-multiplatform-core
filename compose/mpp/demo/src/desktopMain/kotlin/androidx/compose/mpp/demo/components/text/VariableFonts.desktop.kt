@@ -18,6 +18,6 @@ package androidx.compose.mpp.demo.components.text
 
 import androidx.compose.mpp.demo.getResourceBytes
 
-actual suspend fun loadVariableFont(): ByteArray? {
-    return getResourceBytes("RobotoFlex-VariableFont.ttf")
+actual suspend fun loadResource(file: String): ByteArray? {
+    return getResourceBytes(file)
 }
