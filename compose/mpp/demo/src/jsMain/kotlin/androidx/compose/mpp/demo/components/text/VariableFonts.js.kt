@@ -14,8 +14,21 @@
  * limitations under the License.
  */
 
-package androidx.compose.mpp.demo
+package androidx.compose.mpp.demo.components.text
 
-actual suspend fun loadBytes(file: String): ByteArray? {
-    return getResourceBytes(file)
+import kotlinx.browser.window
+import kotlinx.coroutines.await
+import org.khronos.webgl.ArrayBuffer
+import org.khronos.webgl.Int8Array
+import org.w3c.fetch.Response
+
+
+actual suspend fun loadVariableFont(): ByteArray? {
+    return fetch("RobotoFlex-VariableFont.ttf").arrayBuffer().await().asByteArray()
 }
+
+private suspend fun fetch( url: String): Response =
+    window.fetch(url).await()
+
+@Suppress("CAST_NEVER_SUCCEEDS")
+fun ArrayBuffer?.asByteArray(): ByteArray? = this?.run { Int8Array(this) as ByteArray }

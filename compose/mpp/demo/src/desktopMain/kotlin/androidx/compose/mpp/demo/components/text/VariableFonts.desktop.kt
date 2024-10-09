@@ -14,9 +14,10 @@
  * limitations under the License.
  */
 
-package androidx.compose.mpp.demo
+package androidx.compose.mpp.demo.components.text
 
-// todo(adamglin)
-actual suspend fun loadBytes(file: String): ByteArray? {
-    return null
+import androidx.compose.mpp.demo.getResourceBytes
+
+actual suspend fun loadVariableFont(): ByteArray? {
+    return getResourceBytes("RobotoFlex-VariableFont.ttf")
 }

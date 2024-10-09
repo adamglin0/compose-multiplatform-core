@@ -14,9 +14,8 @@
  * limitations under the License.
  */
 
-package androidx.compose.mpp.demo
+package androidx.compose.mpp.demo.components.text
 
-// todo(adamglin)
-actual suspend fun loadBytes(file: String): ByteArray? {
+actual suspend fun loadVariableFont(): ByteArray? {
     return null
 }

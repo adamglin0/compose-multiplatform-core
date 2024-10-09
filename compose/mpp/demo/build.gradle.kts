@@ -21,6 +21,9 @@ import org.jetbrains.kotlin.gradle.plugin.mpp.KotlinNativeTarget
 import org.jetbrains.kotlin.gradle.plugin.mpp.NativeBuildType
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 import org.jetbrains.kotlin.gradle.targets.js.webpack.KotlinWebpackConfig
+import org.jetbrains.kotlin.gradle.tasks.FatFrameworkTask
+import org.jetbrains.kotlin.gradle.tasks.KotlinNativeLink
+import org.jetbrains.kotlin.konan.target.CompilerOutputKind
 
 plugins {
     id("AndroidXPlugin")
@@ -302,4 +305,44 @@ project.tasks.withType<org.jetbrains.kotlin.gradle.dsl.KotlinJsCompile>().config
         "-Xwasm-generate-wat",
         "-Xwasm-enable-array-range-checks"
     )
+}
+
+
+copyNativeResources("commonMain")
+copyNativeResources("iosMain")
+
+fun copyNativeResources(sourceSet: String) {
+    if (sourceSet.isEmpty()) throw IllegalStateException("Valid sourceSet required")
+
+    val prefix = "copy${sourceSet.capitalize()}Resources"
+
+    tasks.withType<KotlinNativeLink> {
+        val firstIndex = name.indexOfFirst { it.isUpperCase() }
+        val taskName = "$prefix${name.substring(firstIndex)}"
+
+        dependsOn(
+            tasks.register<Copy>(taskName) {
+                from("src/$sourceSet/resources")
+                when (outputKind) {
+                    CompilerOutputKind.FRAMEWORK -> into(outputFile.get())
+                    CompilerOutputKind.PROGRAM -> into(destinationDirectory.get())
+                    else -> throw IllegalStateException("Unhandled binary outputKind: $outputKind")
+                }
+            }
+        )
+    }
+
+    tasks.withType<FatFrameworkTask> {
+        if (destinationDir.path.contains("Temp")) return@withType
+
+        val firstIndex = name.indexOfFirst { it.isUpperCase() }
+        val taskName = "$prefix${name.substring(firstIndex)}"
+
+        dependsOn(
+            tasks.register<Copy>(taskName) {
+                from("src/$sourceSet/resources")
+                into(fatFramework)
+            }
+        )
+    }
 }
