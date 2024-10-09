@@ -18,6 +18,8 @@ package androidx.compose.mpp.demo.components.text
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.Slider
@@ -78,10 +80,7 @@ fun VariableFonts() {
                 variationSettings = variationSettings
             ).toFontFamily()
         } ?: FontFamily.Default
-
-    Column(
-        modifier = Modifier.background(Color.White)
-    ) {
+    Column {
         Text(
             """
                 116 Part
