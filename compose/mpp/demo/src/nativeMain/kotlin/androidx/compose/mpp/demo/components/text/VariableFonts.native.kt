@@ -16,6 +16,14 @@
 
 package androidx.compose.mpp.demo.components.text
 
+import kotlinx.cinterop.readBytes
+import platform.Foundation.NSBundle
+import platform.Foundation.NSData
+import platform.Foundation.dataWithContentsOfFile
+
 actual suspend fun loadVariableFont(): ByteArray? {
-    return null
+    val filePath = NSBundle.mainBundle.pathForResource("RobotoFlex-VariableFont", "ttf")
+    val fileData = NSData.dataWithContentsOfFile(filePath!!)
+        ?: throw Error("failed reading RobotoFlex-VariableFont.ttf")
+    return fileData.bytes!!.readBytes(fileData.length.toInt())
 }
