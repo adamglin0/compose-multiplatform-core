@@ -383,9 +383,12 @@ internal fun FontVariation.Settings.toSikaFontVariationList(): List<org.jetbrain
 }
 
 /**
- * Bind the font variation settings to the Skia typeface.
+ * Clones the SkTypeface with specified font variation settings.
+ *
+ * @param variationSettings Font variations to apply. If empty, returns the original typeface.
+ * @return A new SkTypeface with applied variations, or the original if no variations.
  */
-internal fun SkTypeface.bindVariantSettings(variationSettings: FontVariation.Settings): SkTypeface {
+internal fun SkTypeface.cloneWithVariationSettings(variationSettings: FontVariation.Settings): SkTypeface {
     if (variationSettings.settings.isEmpty()) return this
     val variations = variationSettings.toSikaFontVariationList()
     return makeClone(variations.toTypedArray())
