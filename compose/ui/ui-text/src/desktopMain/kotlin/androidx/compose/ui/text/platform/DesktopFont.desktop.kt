@@ -190,7 +190,7 @@ private fun typefaceResource(resourceName: String): SkTypeface {
         ?: (::typefaceResource.javaClass).getResourceAsStream(resourceName)
         ?: error("Can't load font from $resourceName")
 
-    val bytes = resource.use { it.readBytes() }
+    val bytes = resource.use { it.readAllBytes() }
     return FontMgr.default.makeFromData(Data.makeFromBytes(bytes))!!
 }
 
