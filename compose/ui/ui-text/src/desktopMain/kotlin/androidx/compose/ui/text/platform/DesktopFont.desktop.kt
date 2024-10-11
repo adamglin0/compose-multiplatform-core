@@ -181,7 +181,7 @@ internal actual fun loadTypeface(font: Font): SkTypeface {
         is SystemFont -> FontMgr.default.matchFamilyStyle(font.identity, font.skFontStyle)
     } ?: (FontMgr.default.legacyMakeTypeface(font.identity, font.skFontStyle)
         ?: error("loadTypeface legacyMakeTypeface failed"))
-    return typeface.bindVariantSettings(font.variationSettings)
+    return typeface.cloneWithVariationSettings(font.variationSettings)
 }
 
 private fun typefaceResource(resourceName: String): SkTypeface {
