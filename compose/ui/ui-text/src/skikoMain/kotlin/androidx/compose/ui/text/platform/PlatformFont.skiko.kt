@@ -31,7 +31,6 @@ import androidx.compose.ui.text.font.GenericFontFamily
 import androidx.compose.ui.text.font.LoadedFontFamily
 import androidx.compose.ui.text.font.Typeface
 import androidx.compose.ui.text.font.createFontFamilyResolver
-import androidx.compose.ui.unit.Density
 import org.jetbrains.skia.FontMgrWithFallback
 import org.jetbrains.skia.paragraph.FontCollection
 import org.jetbrains.skia.paragraph.TypefaceFontProviderWithFallback
@@ -115,21 +114,26 @@ class LoadedFont internal constructor(
  * Creates a Font using byte array with loaded font data.
  *
  * @param identity Unique identity for a font. Used internally to distinguish fonts.
- * @param getData should return Byte array with loaded font data.
+ * @param data Byte array with loaded font data.
  * @param weight The weight of the font. The system uses this to match a font to a font request
- * that is given in a [androidx.compose.ui.text.SpanStyle].
+ * that is given in a [androidx.compose.ui.text.SpanStyle]. For non-variable fonts, this directly
+ * affects the font style.
  * @param style The style of the font, normal or italic. The system uses this to match a font to a
- * font request that is given in a [androidx.compose.ui.text.SpanStyle].
+ * font request that is given in a [androidx.compose.ui.text.SpanStyle]. For non-variable fonts,
+ * this directly affects the font style.
+ * @param variationSettings Specifies the variation settings for the font. This allows for fine-tuned
+ * control over font characteristics such as weight and style. It can be used to create custom
+ * font variations within a single font file, if the font supports variable axes. By default,
+ * it uses the provided weight and style parameters.
+ *
+ * Note on font style determination:
+ * 1. For non-variable fonts, the font style is defined only by the weight and style parameters.
+ * 2. For variable fonts, the font style is determined solely by the variationSettings.
+ * 3. When weight, style, and variationSettings are all set for variable fonts, the font style
+ *    will be determined by variationSettings, as its default values are derived from weight and style.
  *
  * @see FontFamily
  */
-fun Font(
-    identity: String,
-    getData: () -> ByteArray,
-    weight: FontWeight = FontWeight.Normal,
-    style: FontStyle = FontStyle.Normal,
-): Font = LoadedFont(identity, getData, weight, style, FontVariation.Settings())
-
 fun Font(
     identity: String,
     getData: () -> ByteArray,
@@ -152,25 +156,24 @@ private class SkiaBackedTypeface(
  * @param identity Unique identity for a font. Used internally to distinguish fonts.
  * @param data Byte array with loaded font data.
  * @param weight The weight of the font. The system uses this to match a font to a font request
- * that is given in a [androidx.compose.ui.text.SpanStyle].
+ * that is given in a [androidx.compose.ui.text.SpanStyle]. For non-variable fonts, this directly
+ * affects the font style.
  * @param style The style of the font, normal or italic. The system uses this to match a font to a
- * font request that is given in a [androidx.compose.ui.text.SpanStyle].
+ * font request that is given in a [androidx.compose.ui.text.SpanStyle]. For non-variable fonts,
+ * this directly affects the font style.
+ * @param variationSettings Specifies the variation settings for the font. This allows for fine-tuned
+ * control over font characteristics such as weight and style. It can be used to create custom
+ * font variations within a single font file, if the font supports variable axes. By default,
+ * it uses the provided weight and style parameters.
+ *
+ * Note on font style determination:
+ * 1. For non-variable fonts, the font style is defined only by the weight and style parameters.
+ * 2. For variable fonts, the font style is determined solely by the variationSettings.
+ * 3. When weight, style, and variationSettings are all set for variable fonts, the font style
+ *    will be determined by variationSettings, as its default values are derived from weight and style.
  *
  * @see FontFamily
  */
-fun Font(
-    identity: String,
-    data: ByteArray,
-    weight: FontWeight = FontWeight.Normal,
-    style: FontStyle = FontStyle.Normal,
-): Font = Font(
-    identity = identity,
-    getData = { data },
-    weight = weight,
-    style = style,
-    variationSettings = FontVariation.Settings(),
-)
-
 fun Font(
     identity: String,
     data: ByteArray,
@@ -184,6 +187,7 @@ fun Font(
     style = style,
     variationSettings = variationSettings,
 )
+
 /**
  * Returns a Compose [Typeface] from Skia [SkTypeface].
  *
@@ -313,10 +317,15 @@ private val GenericFontFamiliesMapping: Map<String, List<String>> by lazy {
             mapOf(
                 FontFamily.SansSerif.name to listOf("Noto Sans", "DejaVu Sans", "Arial"),
                 FontFamily.Serif.name to listOf("Noto Serif", "DejaVu Serif", "Times New Roman"),
-                FontFamily.Monospace.name to listOf("Noto Sans Mono", "DejaVu Sans Mono", "Consolas"),
+                FontFamily.Monospace.name to listOf(
+                    "Noto Sans Mono",
+                    "DejaVu Sans Mono",
+                    "Consolas"
+                ),
                 // better alternative?
                 FontFamily.Cursive.name to listOf("Comic Sans MS")
             )
+
         Platform.Windows ->
             mapOf(
                 // Segoe UI is the Windows system font, so try it first.
@@ -326,15 +335,29 @@ private val GenericFontFamiliesMapping: Map<String, List<String>> by lazy {
                 FontFamily.Monospace.name to listOf("Consolas"),
                 FontFamily.Cursive.name to listOf("Comic Sans MS")
             )
+
         Platform.MacOS, Platform.IOS, Platform.TvOS, Platform.WatchOS ->
             mapOf(
                 // .AppleSystem* aliases is the only legal way to get default SF and NY fonts.
-                FontFamily.SansSerif.name to listOf(".AppleSystemUIFont", "Helvetica Neue", "Helvetica"),
-                FontFamily.Serif.name to listOf(".AppleSystemUIFontSerif", "Times", "Times New Roman"),
-                FontFamily.Monospace.name to listOf(".AppleSystemUIFontMonospaced", "Menlo", "Courier"),
+                FontFamily.SansSerif.name to listOf(
+                    ".AppleSystemUIFont",
+                    "Helvetica Neue",
+                    "Helvetica"
+                ),
+                FontFamily.Serif.name to listOf(
+                    ".AppleSystemUIFontSerif",
+                    "Times",
+                    "Times New Roman"
+                ),
+                FontFamily.Monospace.name to listOf(
+                    ".AppleSystemUIFontMonospaced",
+                    "Menlo",
+                    "Courier"
+                ),
                 // Safari "font-family: cursive" real font names from macOS and iOS.
                 FontFamily.Cursive.name to listOf("Apple Chancery", "Snell Roundhand")
             )
+
         Platform.Android -> // https://m3.material.io/styles/typography/fonts
             mapOf(
                 FontFamily.SansSerif.name to listOf("Roboto", "Noto Sans"),
@@ -342,6 +365,7 @@ private val GenericFontFamiliesMapping: Map<String, List<String>> by lazy {
                 FontFamily.Monospace.name to listOf("Roboto Mono", "Noto Sans Mono"),
                 FontFamily.Cursive.name to listOf("Comic Sans MS")
             )
+
         Platform.Unknown ->
             mapOf(
                 FontFamily.SansSerif.name to listOf("Arial"),
