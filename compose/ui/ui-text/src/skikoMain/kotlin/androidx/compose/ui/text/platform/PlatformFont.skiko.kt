@@ -114,7 +114,7 @@ class LoadedFont internal constructor(
  * Creates a Font using byte array with loaded font data.
  *
  * @param identity Unique identity for a font. Used internally to distinguish fonts.
- * @param data Byte array with loaded font data.
+ * @param getData should return Byte array with loaded font data.
  * @param weight The weight of the font. The system uses this to match a font to a font request
  * that is given in a [androidx.compose.ui.text.SpanStyle]. For non-variable fonts, this directly
  * affects the font style.
