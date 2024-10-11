@@ -15,11 +15,10 @@
  */
 package androidx.compose.ui.text.platform
 
-import org.jetbrains.skia.Typeface as SkTypeface
 import org.jetbrains.skia.FontStyle as SkFontStyle
+import org.jetbrains.skia.Typeface as SkTypeface
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontStyle
-import androidx.compose.ui.unit.Density
 import org.jetbrains.skia.Data
 import org.jetbrains.skia.FontMgr
 import org.jetbrains.skia.FontSlant
@@ -37,7 +36,7 @@ internal actual fun loadTypeface(font: Font): SkTypeface {
 
         is SystemFont -> FontMgr.default.legacyMakeTypeface(font.identity, font.skFontStyle)
             ?: error("loadTypeface legacyMakeTypeface failed")
-    }.bindVariantSettings(font.variationSettings)
+    }.cloneWithVariationSettings(font.variationSettings)
 }
 
 private val Font.skFontStyle: SkFontStyle

@@ -37,7 +37,7 @@ internal actual fun loadTypeface(font: Font): SkTypeface {
             ?: error("loadTypeface legacyMakeTypeface failed")
         // TODO: compilation fails without `else` see https://youtrack.jetbrains.com/issue/KT-43875
         else -> throw IllegalArgumentException("Unsupported font type: $font")
-    }.bindVariantSettings(font.variationSettings)
+    }.cloneWithVariationSettings(font.variationSettings)
 }
 
 private val Font.skFontStyle: SkFontStyle
