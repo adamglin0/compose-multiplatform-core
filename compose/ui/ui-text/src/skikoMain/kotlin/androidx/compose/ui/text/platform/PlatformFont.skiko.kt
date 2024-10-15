@@ -372,7 +372,7 @@ private val GenericFontFamiliesMapping: Map<String, List<String>> by lazy {
     }
 }
 
-internal fun FontVariation.Settings.toSikaFontVariationList(): List<org.jetbrains.skia.FontVariation> {
+internal fun FontVariation.Settings.toSkiaFontVariationList(): List<org.jetbrains.skia.FontVariation> {
     return settings.map { setting ->
         org.jetbrains.skia.FontVariation(setting.axisName, setting.toVariationValue(null))
     }
@@ -386,6 +386,6 @@ internal fun FontVariation.Settings.toSikaFontVariationList(): List<org.jetbrain
  */
 internal fun SkTypeface.cloneWithVariationSettings(variationSettings: FontVariation.Settings): SkTypeface {
     if (variationSettings.settings.isEmpty()) return this
-    val variations = variationSettings.toSikaFontVariationList()
+    val variations = variationSettings.toSkiaFontVariationList()
     return makeClone(variations.toTypedArray())
 }
