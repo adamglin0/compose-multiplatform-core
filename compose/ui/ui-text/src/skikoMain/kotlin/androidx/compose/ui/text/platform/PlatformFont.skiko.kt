@@ -126,7 +126,7 @@ fun Font(
     identity: String,
     getData: () -> ByteArray,
     weight: FontWeight = FontWeight.Normal,
-    style: FontStyle = FontStyle.Normal,
+    style: FontStyle = FontStyle.Normal
 ): Font = LoadedFont(identity, getData, weight, style, FontVariation.Settings())
 
 /**
@@ -158,7 +158,7 @@ fun Font(
     getData: () -> ByteArray,
     weight: FontWeight = FontWeight.Normal,
     style: FontStyle = FontStyle.Normal,
-    variationSettings: FontVariation.Settings = FontVariation.Settings(weight, style),
+    variationSettings: FontVariation.Settings = FontVariation.Settings(weight, style)
 ): Font = LoadedFont(identity, getData, weight, style, variationSettings)
 
 private class SkiaBackedTypeface(
@@ -185,7 +185,7 @@ fun Font(
     identity: String,
     data: ByteArray,
     weight: FontWeight = FontWeight.Normal,
-    style: FontStyle = FontStyle.Normal,
+    style: FontStyle = FontStyle.Normal
 ): Font = Font(
     identity = identity,
     getData = { data },
@@ -223,7 +223,7 @@ fun Font(
     data: ByteArray,
     weight: FontWeight = FontWeight.Normal,
     style: FontStyle = FontStyle.Normal,
-    variationSettings: FontVariation.Settings = FontVariation.Settings(weight, style),
+    variationSettings: FontVariation.Settings = FontVariation.Settings(weight, style)
 ): Font = Font(
     identity = identity,
     getData = { data },
