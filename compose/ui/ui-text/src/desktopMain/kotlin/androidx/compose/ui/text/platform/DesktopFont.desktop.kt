@@ -51,6 +51,13 @@ class ResourceFont internal constructor(
     override val style: FontStyle = FontStyle.Normal,
     override val variationSettings: FontVariation.Settings = FontVariation.Settings(weight, style),
 ) : PlatformFont() {
+
+    constructor(
+        name: String,
+        weight: FontWeight = FontWeight.Normal,
+        style: FontStyle = FontStyle.Normal
+    ) : this(name, weight, style, FontVariation.Settings(weight, style))
+
     override val identity
         get() = name
 
@@ -97,6 +104,12 @@ class ResourceFont internal constructor(
 fun Font(
     resource: String,
     weight: FontWeight = FontWeight.Normal,
+    style: FontStyle = FontStyle.Normal
+): Font = ResourceFont(resource, weight, style, FontVariation.Settings())
+
+fun Font(
+    resource: String,
+    weight: FontWeight = FontWeight.Normal,
     style: FontStyle = FontStyle.Normal,
     variationSettings: FontVariation.Settings = FontVariation.Settings(weight, style)
 ): Font = ResourceFont(resource, weight, style, variationSettings)
@@ -119,6 +132,13 @@ class FileFont internal constructor(
     override val style: FontStyle = FontStyle.Normal,
     override val variationSettings: FontVariation.Settings = FontVariation.Settings(weight, style),
 ) : PlatformFont() {
+
+    constructor(
+        file: File,
+        weight: FontWeight = FontWeight.Normal,
+        style: FontStyle = FontStyle.Normal,
+    ) : this(file, weight, style, FontVariation.Settings())
+
     override val identity
         get() = file.toString()
 
@@ -162,6 +182,12 @@ class FileFont internal constructor(
  *     [androidx.compose.ui.text.SpanStyle].
  * @see FontFamily
  */
+fun Font(
+    file: File,
+    weight: FontWeight = FontWeight.Normal,
+    style: FontStyle = FontStyle.Normal
+): Font = FileFont(file, weight, style, FontVariation.Settings())
+
 fun Font(
     file: File,
     weight: FontWeight = FontWeight.Normal,
