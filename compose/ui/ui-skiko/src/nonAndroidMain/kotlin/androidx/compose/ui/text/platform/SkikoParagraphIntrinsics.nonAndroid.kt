@@ -70,6 +70,67 @@ internal class SkikoParagraphIntrinsics(
         onFontStale = { hasStaleResolvedFonts = true }
     )
 
+    /**
+     * Creates a [ParagraphLayouter] for a truncated version of the text used to implement
+     * [androidx.compose.ui.text.style.TextOverflow.StartEllipsis] and
+     * [androidx.compose.ui.text.style.TextOverflow.MiddleEllipsis], which Skia doesn't support
+     * natively.
+     *
+     * The resulting text keeps the range `[0, prefixEnd)` and `[suffixStart, length)` of the
+     * original text with [ellipsis] inserted in between. Style annotations and placeholders are
+     * remapped to the new offsets; those that fall entirely inside the removed region are dropped.
+     *
+     * For [StartEllipsis][androidx.compose.ui.text.style.TextOverflow.StartEllipsis] pass
+     * `prefixEnd = 0`.
+     */
+    internal fun ellipsizedLayouter(
+        prefixEnd: Int,
+        suffixStart: Int,
+        ellipsis: String,
+    ): ParagraphLayouter {
+        val ellipsisLength = ellipsis.length
+        val keptText = buildString {
+            append(text, 0, prefixEnd)
+            append(ellipsis)
+            append(text, suffixStart, text.length)
+        }
+
+        // Maps an offset in the original text to the corresponding offset in [keptText]. Offsets
+        // inside the removed region collapse onto the ellipsis position.
+        fun mapOffset(offset: Int): Int = when {
+            offset <= prefixEnd -> offset
+            offset >= suffixStart -> offset - suffixStart + prefixEnd + ellipsisLength
+            else -> prefixEnd + ellipsisLength
+        }
+
+        val remappedAnnotations = annotations.mapNotNull { range ->
+            val newStart = mapOffset(range.start)
+            val newEnd = mapOffset(range.end)
+            if (newEnd > newStart) range.copy(start = newStart, end = newEnd) else null
+        }
+
+        // A placeholder replaces its whole range with a single box, so it can only be kept if it
+        // survives entirely within the visible prefix or suffix.
+        val remappedPlaceholders = placeholders.mapNotNull { range ->
+            if (range.end <= prefixEnd || range.start >= suffixStart) {
+                range.copy(start = mapOffset(range.start), end = mapOffset(range.end))
+            } else {
+                null
+            }
+        }
+
+        return ParagraphLayouter(
+            text = keptText,
+            textDirection = textDirection,
+            style = style,
+            annotations = remappedAnnotations,
+            placeholders = remappedPlaceholders,
+            density = density,
+            fontFamilyResolver = fontFamilyResolver,
+            onFontStale = { hasStaleResolvedFonts = true }
+        )
+    }
+
     override var minIntrinsicWidth = 0f
         private set
     override var maxIntrinsicWidth = 0f

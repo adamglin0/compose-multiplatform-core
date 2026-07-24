@@ -4209,6 +4209,125 @@ class DesktopParagraphIntegrationTest : SkikoComposeTestBase() {
         simpleParagraph(text = "", width = -1f)
     }
 
+    @Test
+    fun startEllipsis_singleLine_ellipsizesAndFitsWidth() {
+        with(defaultDensity) {
+            val fontSize = 10.sp
+            val fontSizeInPx = fontSize.toPx()
+            // 10 characters -> 100px wide, doesn't fit into 6 characters worth of width.
+            val text = "abcdefghij"
+            val width = 6 * fontSizeInPx
+
+            val paragraph =
+                simpleParagraph(
+                    text = text,
+                    style = TextStyle(fontSize = fontSize),
+                    overflow = TextOverflow.StartEllipsis,
+                    maxLines = 1,
+                    width = width,
+                )
+
+            assertThat(paragraph.lineCount).isEqualTo(1)
+            assertThat(paragraph.isLineEllipsized(0)).isTrue()
+            assertThat(paragraph.getLineWidth(0) <= width + 0.01f).isTrue()
+        }
+    }
+
+    @Test
+    fun middleEllipsis_singleLine_ellipsizesAndFitsWidth() {
+        with(defaultDensity) {
+            val fontSize = 10.sp
+            val fontSizeInPx = fontSize.toPx()
+            val text = "abcdefghij"
+            val width = 6 * fontSizeInPx
+
+            val paragraph =
+                simpleParagraph(
+                    text = text,
+                    style = TextStyle(fontSize = fontSize),
+                    overflow = TextOverflow.MiddleEllipsis,
+                    maxLines = 1,
+                    width = width,
+                )
+
+            assertThat(paragraph.lineCount).isEqualTo(1)
+            assertThat(paragraph.isLineEllipsized(0)).isTrue()
+            assertThat(paragraph.getLineWidth(0) <= width + 0.01f).isTrue()
+        }
+    }
+
+    @Test
+    fun startEllipsis_textFitsWidth_isNotEllipsized() {
+        with(defaultDensity) {
+            val fontSize = 10.sp
+            val fontSizeInPx = fontSize.toPx()
+            val text = "abc"
+
+            val paragraph =
+                simpleParagraph(
+                    text = text,
+                    style = TextStyle(fontSize = fontSize),
+                    overflow = TextOverflow.StartEllipsis,
+                    maxLines = 1,
+                    width = 10 * fontSizeInPx,
+                )
+
+            assertThat(paragraph.lineCount).isEqualTo(1)
+            assertThat(paragraph.isLineEllipsized(0)).isFalse()
+            assertThat(paragraph.getLineWidth(0)).isEqualToWithTolerance(text.length * fontSizeInPx)
+        }
+    }
+
+    @Test
+    fun startEllipsis_multiLine_doesNotApplyStartEllipsis() {
+        with(defaultDensity) {
+            val fontSize = 10.sp
+            val fontSizeInPx = fontSize.toPx()
+            val text = "abcdefghij"
+
+            // With maxLines > 1 Start/Middle ellipsis falls back to clipping (no ellipsis).
+            val paragraph =
+                simpleParagraph(
+                    text = text,
+                    style = TextStyle(fontSize = fontSize),
+                    overflow = TextOverflow.StartEllipsis,
+                    maxLines = 2,
+                    width = 5 * fontSizeInPx,
+                )
+
+            assertThat(paragraph.isLineEllipsized(0)).isFalse()
+        }
+    }
+
+    @Test
+    fun middleEllipsis_withSpanStyles_ellipsizesWithoutError() {
+        with(defaultDensity) {
+            val fontSize = 10.sp
+            val fontSizeInPx = fontSize.toPx()
+            val text = "abcdefghij"
+            val width = 6 * fontSizeInPx
+
+            // Spans crossing the truncated region exercise the annotation remapping path.
+            val paragraph =
+                simpleParagraph(
+                    text = text,
+                    style = TextStyle(fontSize = fontSize),
+                    overflow = TextOverflow.MiddleEllipsis,
+                    maxLines = 1,
+                    width = width,
+                    spanStyles =
+                        listOf(
+                            AnnotatedString.Range(SpanStyle(fontWeight = FontWeight.Bold), 0, 3),
+                            AnnotatedString.Range(SpanStyle(fontWeight = FontWeight.Bold), 7, 10),
+                        ),
+                )
+
+            assertThat(paragraph.lineCount).isEqualTo(1)
+            assertThat(paragraph.isLineEllipsized(0)).isTrue()
+            assertThat(paragraph.getLineWidth(0) <= width + 0.01f).isTrue()
+        }
+    }
+
     private fun simpleParagraph(
         text: String = "",
         style: TextStyle? = null,

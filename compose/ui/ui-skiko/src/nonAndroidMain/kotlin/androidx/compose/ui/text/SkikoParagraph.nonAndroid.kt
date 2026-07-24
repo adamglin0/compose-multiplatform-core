@@ -34,6 +34,7 @@ import androidx.compose.ui.graphics.drawscope.DrawStyle
 import androidx.compose.ui.graphics.skiaCanvas
 import androidx.compose.ui.graphics.toComposeRect
 import androidx.compose.ui.text.PlatformParagraph
+import androidx.compose.ui.text.platform.ParagraphLayouter
 import androidx.compose.ui.text.platform.SkikoParagraphIntrinsics
 import androidx.compose.ui.text.platform.cursorHorizontalPosition
 import androidx.compose.ui.text.style.LineHeightStyle
@@ -54,13 +55,19 @@ import org.jetbrains.skia.paragraph.RectWidthMode
 import org.jetbrains.skia.paragraph.TextBox
 import org.jetbrains.skia.paragraph.Paragraph as SkParagraph
 
+private const val EllipsisChar = "…"
+
+// The glyph nearest the computed cut coordinate can leave a Start/Middle ellipsized line a little
+// wider than the available width. This bounds how many extra characters we drop to make it fit.
+private const val MaxEllipsisShrinkSteps = 3
+
 internal class SkikoParagraph(
     private val paragraphIntrinsics: SkikoParagraphIntrinsics,
     val maxLines: Int,
     private val overflow: TextOverflow,
     val constraints: Constraints
 ) : PlatformParagraph {
-    private val layouter = paragraphIntrinsics.layouter().apply {
+    private var layouter = paragraphIntrinsics.layouter().apply {
         setParagraphStyle(maxLines, ellipsis)
     }
 
@@ -112,16 +119,137 @@ internal class SkikoParagraph(
                 paragraph = layouter.layoutParagraph(width)
             }
         }
+
+        // Start/Middle ellipsis is only supported for a single line of text. This matches the
+        // documented behavior of [TextOverflow.StartEllipsis]/[TextOverflow.MiddleEllipsis] and
+        // the Android implementation; for multiline text it effectively falls back to clipping.
+        if (maxLines == 1 &&
+            (overflow == TextOverflow.StartEllipsis || overflow == TextOverflow.MiddleEllipsis)
+        ) {
+            applyStartOrMiddleEllipsis()
+        }
     }
 
-    // TODO(https://youtrack.jetbrains.com/issue/CMP-6716): Properly support Middle/Start ellipsis
+    // Skia's paragraph only supports placing the ellipsis at the end of the text, so only the end
+    // [TextOverflow.Ellipsis] can be delegated to it. Start/Middle ellipsis is implemented manually
+    // by truncating the text, see [applyStartOrMiddleEllipsis].
     private val ellipsis: String
-        get() = if (overflow in listOf(
-                TextOverflow.Ellipsis,
-                TextOverflow.MiddleEllipsis,
-                TextOverflow.StartEllipsis,
-            )
-        ) "\u2026" else ""
+        get() = if (overflow == TextOverflow.Ellipsis) EllipsisChar else ""
+
+    /** Whether the (single) line was ellipsized by the manual Start/Middle ellipsis handling. */
+    private var lineEllipsized = false
+
+    /**
+     * Implements [TextOverflow.StartEllipsis] and [TextOverflow.MiddleEllipsis], which Skia's
+     * paragraph doesn't support natively.
+     *
+     * The whole text is laid out on a single line to measure it; we then find how much of it fits
+     * into the available width around the ellipsis character and rebuild the paragraph with the
+     * truncated text (keeping the styling and placeholders that survive the truncation).
+     *
+     * Note: for a truncated paragraph the text offsets reported by this instance (e.g. for
+     * selection) refer to the truncated text rather than the original one. This is acceptable
+     * because Start/Middle ellipsis only applies to non-wrapping, display-only single-line text.
+     */
+    private fun applyStartOrMiddleEllipsis() {
+        // Lay out the full text on a single line (unbounded width) to measure it and locate the
+        // cut points via glyph coordinates.
+        layouter.setParagraphStyle(maxLines = 1, ellipsis = "")
+        val fullLine = layouter.layoutParagraph(Float.POSITIVE_INFINITY)
+        val fullWidth = fullLine.longestLine
+        if (fullWidth <= width) {
+            // The whole text fits, no ellipsis is needed. Re-layout at the target width.
+            paragraph = layouter.layoutParagraph(width)
+            return
+        }
+
+        val ellipsisWidth = layouter.defaultFont.measureTextWidth(EllipsisChar)
+        val available = (width - ellipsisWidth).coerceAtLeast(0f)
+        // Any y coordinate that falls within the single line works for the coordinate lookup.
+        val y = fullLine.height / 2f
+        val length = text.length
+
+        var prefixEnd: Int
+        var suffixStart: Int
+        if (overflow == TextOverflow.StartEllipsis) {
+            // Keep the largest trailing part of the text that fits into [available].
+            prefixEnd = 0
+            suffixStart = fullLine
+                .getGlyphPositionAtCoordinate(fullWidth - available, y).position
+                .coerceIn(0, length)
+        } else {
+            // MiddleEllipsis: keep a leading and a trailing part, splitting [available] in half.
+            val leftBudget = available / 2f
+            val rightBudget = available - leftBudget
+            prefixEnd = fullLine
+                .getGlyphPositionAtCoordinate(leftBudget, y).position
+                .coerceIn(0, length)
+            suffixStart = fullLine
+                .getGlyphPositionAtCoordinate(fullWidth - rightBudget, y).position
+                .coerceIn(prefixEnd, length)
+        }
+        prefixEnd = notInSurrogate(prefixEnd)
+        suffixStart = notInSurrogate(suffixStart)
+
+        // Locating the cut points via the nearest glyph can leave the truncated text slightly wider
+        // than the available width. Rebuild it, dropping one more character at a time until it fits.
+        var truncated = buildEllipsizedParagraph(prefixEnd, suffixStart)
+        var shrinkSteps = 0
+        while (truncated.second.longestLine > width &&
+            suffixStart - prefixEnd < length &&
+            shrinkSteps < MaxEllipsisShrinkSteps
+        ) {
+            if (overflow == TextOverflow.StartEllipsis || prefixEnd < length - suffixStart) {
+                // Drop one more leading character of the kept suffix.
+                suffixStart = advanceOverSurrogate((suffixStart + 1).coerceAtMost(length))
+            } else {
+                // Drop one more trailing character of the kept prefix.
+                prefixEnd = retreatOverSurrogate((prefixEnd - 1).coerceAtLeast(0))
+            }
+            truncated = buildEllipsizedParagraph(prefixEnd, suffixStart)
+            shrinkSteps++
+        }
+
+        layouter = truncated.first
+        layouter.setBrushSize(Size(width, truncated.second.height))
+        paragraph = layouter.layoutParagraph(width)
+        lineEllipsized = true
+    }
+
+    private fun buildEllipsizedParagraph(
+        prefixEnd: Int,
+        suffixStart: Int
+    ): Pair<ParagraphLayouter, SkParagraph> {
+        val truncated = paragraphIntrinsics.ellipsizedLayouter(prefixEnd, suffixStart, EllipsisChar)
+        truncated.setParagraphStyle(maxLines = 1, ellipsis = "")
+        return truncated to truncated.layoutParagraph(width)
+    }
+
+    /** Moves [offset] back by one if it would split a surrogate pair. */
+    private fun notInSurrogate(offset: Int): Int =
+        if (offset in 1 until text.length &&
+            text[offset - 1].isHighSurrogate() && text[offset].isLowSurrogate()
+        ) {
+            offset - 1
+        } else {
+            offset
+        }
+
+    /** Ensures [offset] doesn't point at the low surrogate of a pair, moving forward if needed. */
+    private fun advanceOverSurrogate(offset: Int): Int =
+        if (offset in 1 until text.length && text[offset].isLowSurrogate()) {
+            (offset + 1).coerceAtMost(text.length)
+        } else {
+            offset
+        }
+
+    /** Ensures [offset] doesn't point at the low surrogate of a pair, moving backward if needed. */
+    private fun retreatOverSurrogate(offset: Int): Int =
+        if (offset in 1 until text.length && text[offset].isLowSurrogate()) {
+            (offset - 1).coerceAtLeast(0)
+        } else {
+            offset
+        }
 
     private val text: String
         get() = paragraphIntrinsics.text
@@ -277,7 +405,7 @@ internal class SkikoParagraph(
         }
     }
 
-    override fun isLineEllipsized(lineIndex: Int) = false
+    override fun isLineEllipsized(lineIndex: Int) = lineEllipsized && lineIndex == 0
 
     override fun getLineForOffset(offset: Int) =
         when {
