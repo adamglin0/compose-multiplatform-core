@@ -4229,6 +4229,7 @@ class DesktopParagraphIntegrationTest : SkikoComposeTestBase() {
 
             assertThat(paragraph.lineCount).isEqualTo(1)
             assertThat(paragraph.isLineEllipsized(0)).isTrue()
+            assertThat(paragraph.didExceedMaxLines).isTrue()
             assertThat(paragraph.getLineWidth(0) <= width + 0.01f).isTrue()
         }
     }

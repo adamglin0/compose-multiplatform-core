@@ -88,6 +88,10 @@ internal class SkikoParagraphIntrinsics(
         suffixStart: Int,
         ellipsis: String,
     ): ParagraphLayouter {
+        // Keep the kept ranges disjoint and in-bounds so the prefix and suffix can never overlap
+        // (which would otherwise duplicate a character).
+        @Suppress("NAME_SHADOWING") val prefixEnd = prefixEnd.coerceIn(0, text.length)
+        @Suppress("NAME_SHADOWING") val suffixStart = suffixStart.coerceIn(prefixEnd, text.length)
         val ellipsisLength = ellipsis.length
         val keptText = buildString {
             append(text, 0, prefixEnd)

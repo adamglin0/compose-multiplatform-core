@@ -61,6 +61,9 @@ private const val EllipsisChar = "…"
 // wider than the available width. This bounds how many extra characters we drop to make it fit.
 private const val MaxEllipsisShrinkSteps = 3
 
+// Sub-pixel slack so float rounding of the laid-out width doesn't trigger an unnecessary shrink.
+private const val FitTolerance = 0.01f
+
 internal class SkikoParagraph(
     private val paragraphIntrinsics: SkikoParagraphIntrinsics,
     val maxLines: Int,
@@ -152,13 +155,18 @@ internal class SkikoParagraph(
      * because Start/Middle ellipsis only applies to non-wrapping, display-only single-line text.
      */
     private fun applyStartOrMiddleEllipsis() {
+        // Fast path: if the whole text fits on a single line there's nothing to ellipsize and the
+        // layout produced in [init] is already correct.
+        if (paragraphIntrinsics.maxIntrinsicWidth <= width) return
+
         // Lay out the full text on a single line (unbounded width) to measure it and locate the
         // cut points via glyph coordinates.
         layouter.setParagraphStyle(maxLines = 1, ellipsis = "")
         val fullLine = layouter.layoutParagraph(Float.POSITIVE_INFINITY)
         val fullWidth = fullLine.longestLine
         if (fullWidth <= width) {
-            // The whole text fits, no ellipsis is needed. Re-layout at the target width.
+            // The whole text fits (rounding of the intrinsic width above was conservative), no
+            // ellipsis is needed. Re-layout at the target width.
             paragraph = layouter.layoutParagraph(width)
             return
         }
@@ -195,16 +203,16 @@ internal class SkikoParagraph(
         // than the available width. Rebuild it, dropping one more character at a time until it fits.
         var truncated = buildEllipsizedParagraph(prefixEnd, suffixStart)
         var shrinkSteps = 0
-        while (truncated.second.longestLine > width &&
+        while (truncated.second.longestLine > width + FitTolerance &&
             suffixStart - prefixEnd < length &&
             shrinkSteps < MaxEllipsisShrinkSteps
         ) {
             if (overflow == TextOverflow.StartEllipsis || prefixEnd < length - suffixStart) {
                 // Drop one more leading character of the kept suffix.
-                suffixStart = advanceOverSurrogate((suffixStart + 1).coerceAtMost(length))
+                suffixStart = (suffixStart + 1).coerceAtMost(length)
             } else {
                 // Drop one more trailing character of the kept prefix.
-                prefixEnd = retreatOverSurrogate((prefixEnd - 1).coerceAtLeast(0))
+                prefixEnd = (prefixEnd - 1).coerceAtLeast(0)
             }
             truncated = buildEllipsizedParagraph(prefixEnd, suffixStart)
             shrinkSteps++
@@ -235,22 +243,6 @@ internal class SkikoParagraph(
             offset
         }
 
-    /** Ensures [offset] doesn't point at the low surrogate of a pair, moving forward if needed. */
-    private fun advanceOverSurrogate(offset: Int): Int =
-        if (offset in 1 until text.length && text[offset].isLowSurrogate()) {
-            (offset + 1).coerceAtMost(text.length)
-        } else {
-            offset
-        }
-
-    /** Ensures [offset] doesn't point at the low surrogate of a pair, moving backward if needed. */
-    private fun retreatOverSurrogate(offset: Int): Int =
-        if (offset in 1 until text.length && text[offset].isLowSurrogate()) {
-            (offset - 1).coerceAtLeast(0)
-        } else {
-            offset
-        }
-
     private val text: String
         get() = paragraphIntrinsics.text
 
@@ -273,7 +265,9 @@ internal class SkikoParagraph(
         get() = lineMetrics.lastOrNull()?.run { baseline.toFloat() } ?: 0f
 
     override val didExceedMaxLines: Boolean
-        get() = paragraph.didExceedMaxLines()
+        // The manual Start/Middle ellipsis rebuilds the paragraph so its text fits a single line;
+        // [lineEllipsized] preserves the fact that the original text was actually truncated.
+        get() = paragraph.didExceedMaxLines() || lineEllipsized
 
     override val lineCount: Int
         // workaround for https://bugs.chromium.org/p/skia/issues/detail?id=11321
