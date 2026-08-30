@@ -381,6 +381,16 @@ public final class androidx/compose/foundation/TooltipArea_desktopKt {
 	public static final fun TooltipArea (Lkotlin/jvm/functions/Function2;Landroidx/compose/ui/Modifier;ILandroidx/compose/foundation/TooltipPlacement;Lkotlin/jvm/functions/Function2;Landroidx/compose/runtime/Composer;II)V
 }
 
+public final class androidx/compose/foundation/content/MediaType {
+	public static final field $stable I
+	public static final field Companion Landroidx/compose/foundation/content/MediaType$Companion;
+	public fun <init> (Ljava/lang/String;)V
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getRepresentation ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
 public final class androidx/compose/foundation/content/MediaType$Companion {
 	public final fun getAll ()Landroidx/compose/foundation/content/MediaType;
 	public final fun getHtmlText ()Landroidx/compose/foundation/content/MediaType;

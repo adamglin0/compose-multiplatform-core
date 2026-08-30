@@ -17,16 +17,10 @@
 package androidx.compose.foundation.content
 
 import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.ui.platform.ClipEntry
 
-// TODO https://youtrack.jetbrains.com/issue/COMPOSE-1263/Implement-Modifier.receiveContent
-
+/**
+ * There is no platform specific information attached to a [TransferableContent] on this platform.
+ * The platform representation of the content is available through [TransferableContent.clipEntry].
+ */
 @ExperimentalFoundationApi
 actual class PlatformTransferableContent internal constructor()
-
-@ExperimentalFoundationApi
-actual fun TransferableContent.hasMediaType(mediaType: MediaType): Boolean {
-    return false
-}
-
-internal actual fun ClipEntry.readPlainText(): String? = null
