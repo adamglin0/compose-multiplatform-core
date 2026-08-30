@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 The Android Open Source Project
+ * Copyright 2025 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,9 +14,15 @@
  * limitations under the License.
  */
 
-package androidx.compose.ui.platform
+package androidx.compose.foundation.content.internal
 
-@Suppress("DEPRECATION")
-internal expect fun createPlatformClipboardManager(): ClipboardManager
+import androidx.compose.ui.draganddrop.DragAndDropEvent
+import androidx.compose.ui.node.DelegatableNode
 
-internal expect fun createPlatformClipboard(): Clipboard
+/**
+ * Requests necessary platform permissions to read the content that's delivered by [event].
+ *
+ * Reading the content of a drop event does not require any permission on this platform.
+ */
+internal actual fun DelegatableNode.dragAndDropRequestPermission(event: DragAndDropEvent) {
+}
