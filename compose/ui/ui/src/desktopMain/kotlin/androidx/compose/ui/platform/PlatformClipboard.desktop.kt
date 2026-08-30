@@ -125,10 +125,24 @@ constructor(
     @property:ExperimentalComposeUiApi
     val nativeClipEntry: Any
 ) {
-    // TODO: https://youtrack.jetbrains.com/issue/CMP-1260
-    actual val clipMetadata: ClipMetadata
-        get() = TODO("ClipMetadata is not implemented. Consider using nativeClipboard")
+    actual val clipMetadata: ClipMetadata by lazy {
+        ClipMetadata((nativeClipEntry as? Transferable)?.transferDataFlavors?.toList().orEmpty())
+    }
 }
+
+/**
+ * Describes the content of a [ClipEntry] without giving access to the content itself.
+ *
+ * On this platform the content is described by the [DataFlavor]s in which it can be represented.
+ */
+actual class ClipMetadata internal constructor(
+    /**
+     * The [DataFlavor]s in which the described content can be represented. It is empty when the
+     * content is not backed by an AWT [Transferable].
+     */
+    @property:ExperimentalComposeUiApi
+    val dataFlavors: List<DataFlavor>
+)
 
 /**
  * Returns a [Transferable] instance if the [ClipEntry.nativeClipEntry]

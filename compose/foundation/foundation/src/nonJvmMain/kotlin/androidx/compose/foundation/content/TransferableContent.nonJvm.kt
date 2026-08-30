@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 The Android Open Source Project
+ * Copyright 2024 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,9 +14,16 @@
  * limitations under the License.
  */
 
-package androidx.compose.ui.platform
+package androidx.compose.foundation.content
 
-@Suppress("DEPRECATION")
-internal expect fun createPlatformClipboardManager(): ClipboardManager
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.ui.platform.ClipEntry
 
-internal expect fun createPlatformClipboard(): Clipboard
+// TODO https://youtrack.jetbrains.com/issue/COMPOSE-1263/Implement-Modifier.receiveContent
+
+@ExperimentalFoundationApi
+actual fun TransferableContent.hasMediaType(mediaType: MediaType): Boolean {
+    return false
+}
+
+internal actual fun ClipEntry.readPlainText(): String? = null
