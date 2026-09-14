@@ -14,16 +14,14 @@
  * limitations under the License.
  */
 
-package androidx.compose.animation.core
+package androidx.compose.foundation.style
 
-import kotlin.annotation.AnnotationRetention.BINARY
-import kotlin.annotation.AnnotationTarget.CLASS
-import kotlin.annotation.AnnotationTarget.FIELD
-import kotlin.annotation.AnnotationTarget.FUNCTION
-import kotlin.annotation.AnnotationTarget.PROPERTY
-import kotlin.annotation.AnnotationTarget.PROPERTY_GETTER
-
-@RequiresOptIn(message = "This is an experimental deferred transition API. (b/342204665)")
-@Target(CLASS, FUNCTION, PROPERTY, FIELD, PROPERTY_GETTER)
-@Retention(BINARY)
-public annotation class ExperimentalDeferredTransitionApi
+/**
+ * A [DslMarker] used to ensure that properties excluded by a [CustomStyleScope] do not resolve to
+ * the outer scope. For example, nested styles are declared within the parent style. If a nested
+ * style doesn't expose a property, it shouldn't incorrectly capture the parent property.
+ */
+@ExperimentalFoundationStyleApi
+@DslMarker
+@Target(AnnotationTarget.CLASS)
+public annotation class StyleScopeMarker
