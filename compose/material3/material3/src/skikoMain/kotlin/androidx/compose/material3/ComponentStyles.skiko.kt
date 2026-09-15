@@ -18,7 +18,7 @@ package androidx.compose.material3
 
 import androidx.compose.runtime.Composable
 
-// TODO https://youtrack.jetbrains.com/issue/CMP-10800/Implement-mediaQueryInfo
+// TODO https://youtrack.jetbrains.com/issue/CMP-10800
 @Composable
 internal actual fun mediaQueryInfo(): MediaQueryInfo =
     MediaQueryInfo(isLaptop = false, isTv = false, isAuto = false)
