@@ -14,16 +14,22 @@
  * limitations under the License.
  */
 
-package androidx.compose.foundation.text
+#import <UIKit/UIKit.h>
 
-import androidx.compose.foundation.interaction.InteractionSource
-import androidx.compose.foundation.text.input.internal.TransformedTextFieldState
-import androidx.compose.ui.Modifier
+NS_ASSUME_NONNULL_BEGIN
 
-internal actual fun Modifier.textFieldOverlay(
-    transformedState: TransformedTextFieldState,
-    keyboardOptions: KeyboardOptions,
-    interactionSource: InteractionSource,
-): Modifier {
-    return this
-}
+@interface CMPPinchGestureRecognizer : UIPinchGestureRecognizer
+
+- (void)touchesBegan:(NSSet<UITouch *> *)touches withEvent:(UIEvent *)event;
+
+- (void)touchesMoved:(NSSet<UITouch *> *)touches withEvent:(UIEvent *)event;
+
+- (void)touchesEnded:(NSSet<UITouch *> *)touches withEvent:(UIEvent *)event;
+
+- (void)touchesCancelled:(NSSet<UITouch *> *)touches withEvent:(UIEvent *)event;
+
+- (BOOL)shouldReceiveEvent:(UIEvent *)event;
+
+@end
+
+NS_ASSUME_NONNULL_END
