@@ -216,8 +216,6 @@ private fun ComposeUiTestConfig.checkSupported() {
     checkFieldIsNotSet("inputMode", ComposeUiTestConfig::inputMode)
     // TODO https://youtrack.jetbrains.com/issue/CMP-10711/Support-ComposeUiTestConfigfailurePolicy
     checkFieldIsNotSet("failurePolicy", ComposeUiTestConfig::failurePolicy)
-    // TODO(Merge) Minor, Implement after merging 341cbc1921d338ae5056873a0cf9f2be7a505ca2.
-    // Apply the configured tolerance to bounds assertions; non-default values are currently
-    // ignored.
+    // TODO https://youtrack.jetbrains.com/issue/CMP-10797/Support-ComposeUiTestConfig.boundsAssertionTolerance
     checkFieldIsNotSet("boundsAssertionTolerance", ComposeUiTestConfig::boundsAssertionTolerance)
 }
