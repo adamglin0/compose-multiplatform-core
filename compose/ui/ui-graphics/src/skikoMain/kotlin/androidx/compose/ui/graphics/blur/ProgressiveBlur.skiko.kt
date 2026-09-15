@@ -22,7 +22,7 @@ import androidx.compose.ui.graphics.RenderEffect
 import androidx.compose.ui.graphics.TileMode
 import androidx.compose.ui.unit.Density
 
-// TODO https://youtrack.jetbrains.com/issue/CMP-10799/Support-progressive-blur-Modifier.blur-...-BlurRadiusSpec
+// TODO https://youtrack.jetbrains.com/issue/CMP-10799
 private fun progressiveBlurNoOp(edgeTreatment: TileMode): RenderEffect =
     BlurEffect(null, 0f, 0f, edgeTreatment)
 
