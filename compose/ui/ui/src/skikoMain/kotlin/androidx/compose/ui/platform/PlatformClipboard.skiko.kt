@@ -16,9 +16,6 @@
 
 package androidx.compose.ui.platform
 
-// TODO: https://youtrack.jetbrains.com/issue/CMP-1260
-actual class ClipMetadata private constructor()
-
 @Suppress("DEPRECATION")
 internal expect fun createPlatformClipboardManager(): ClipboardManager
 

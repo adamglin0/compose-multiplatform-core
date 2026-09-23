@@ -17,21 +17,17 @@
 package androidx.compose.foundation.content
 
 import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.implementedInJetBrainsFork
 import androidx.compose.ui.platform.ClipEntry
 
+// TODO https://youtrack.jetbrains.com/issue/COMPOSE-1263/Implement-Modifier.receiveContent
+
 @ExperimentalFoundationApi
-public actual class PlatformTransferableContent internal constructor() {
-    init {
-        implementedInJetBrainsFork()
-    }
+actual fun TransferableContent.hasMediaType(mediaType: MediaType): Boolean {
+    return false
 }
 
-@ExperimentalFoundationApi
-public actual fun TransferableContent.hasMediaType(mediaType: MediaType): Boolean =
-    implementedInJetBrainsFork()
+internal actual fun ClipEntry.readPlainText(): String? = null
 
-internal actual fun ClipEntry.readPlainText(): String? = implementedInJetBrainsFork()
-
-internal actual fun ClipEntry.readPlainTextWhenLoaded(onResult: (String?) -> Unit): Unit =
-    implementedInJetBrainsFork()
+internal actual fun ClipEntry.readPlainTextWhenLoaded(onResult: (String?) -> Unit) {
+    onResult(readPlainText())
+}

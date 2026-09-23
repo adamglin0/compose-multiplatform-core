@@ -17,7 +17,13 @@
 package androidx.compose.ui.draganddrop
 
 import androidx.compose.ui.ExperimentalComposeUiApi
+import androidx.compose.ui.InternalComposeUiApi
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.platform.ClipEntry
+import androidx.compose.ui.platform.ClipItem
+import androidx.compose.ui.platform.ClipMetadata
+import androidx.compose.ui.platform.typeIdentifiers
+import androidx.compose.ui.platform.whenPlainTextLoaded
 import androidx.compose.ui.uikit.density
 import androidx.compose.ui.unit.toDpOffset
 import androidx.compose.ui.unit.toOffset
@@ -64,3 +70,29 @@ internal actual val DragAndDropEvent.positionInRoot: Offset
             .locationInView(view)
             .toDpOffset()
             .toOffset(view.density)
+
+/**
+ * The position of this [DragAndDropEvent] relative to the root Compose View, in pixels.
+ */
+@InternalComposeUiApi
+val DragAndDropEvent.rootViewPosition: Offset
+    get() = positionInRoot
+
+/**
+ * Describes the dragged items without loading their content.
+ */
+@InternalComposeUiApi
+val DragAndDropEvent.clipMetadata: ClipMetadata
+    get() = ClipMetadata(items.map { it.itemProvider }.typeIdentifiers())
+
+/**
+ * Creates a [ClipEntry] with the dragged items and starts loading their plain text, which is
+ * available asynchronously, see [whenPlainTextLoaded].
+ *
+ * The data of the dragged items can only be requested while the drop is being performed, so this
+ * function must be called from [DragAndDropTarget.onDrop], and the content of the returned entry
+ * must be requested before [DragAndDropTarget.onDrop] returns.
+ */
+@InternalComposeUiApi
+fun DragAndDropEvent.toClipEntry(): ClipEntry =
+    ClipEntry.withItems(items.map { ClipItem.loading(it.itemProvider) })

@@ -98,3 +98,11 @@ public expect fun TransferableContent.hasMediaType(mediaType: MediaType): Boolea
  * reads the explicit text that was transferred directly inside the [ClipEntry].
  */
 internal expect fun ClipEntry.readPlainText(): String?
+
+/**
+ * Reads the plain text like [readPlainText] and passes it to [onResult], which is invoked right
+ * away on platforms where the plain text is readily available. On platforms where some content,
+ * like the content of a drop, is only loaded asynchronously, [onResult] is invoked once it's
+ * loaded.
+ */
+internal expect fun ClipEntry.readPlainTextWhenLoaded(onResult: (String?) -> Unit)

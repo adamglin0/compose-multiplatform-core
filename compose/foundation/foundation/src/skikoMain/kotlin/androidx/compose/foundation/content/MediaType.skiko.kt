@@ -18,29 +18,42 @@ package androidx.compose.foundation.content
 
 import androidx.compose.foundation.ExperimentalFoundationApi
 
-// TODO https://youtrack.jetbrains.com/issue/COMPOSE-1263/Implement-Modifier.receiveContent
-
+/**
+ * Definition of common MediaTypes on the Skiko based platforms. Of these platforms, only iOS can
+ * receive content so far.
+ *
+ * On iOS a [MediaType] matches the content whose Uniform Type Identifiers conform to the type
+ * described by the MIME type, see [TransferableContent.hasMediaType].
+ *
+ * @param representation MimeType string that conforms to RFC 2045.
+ */
 @ExperimentalFoundationApi
-actual class MediaType internal constructor() {
-
-    actual constructor(representation: String) : this()
-
-    actual val representation: String = ""
+actual class MediaType actual constructor(actual val representation: String) {
 
     actual companion object {
-        actual val Text: MediaType = MediaType()
+        actual val Text: MediaType = MediaType("text/*")
 
-        actual val PlainText: MediaType = MediaType()
+        actual val PlainText: MediaType = MediaType("text/plain")
 
-        actual val HtmlText: MediaType = MediaType()
+        actual val HtmlText: MediaType = MediaType("text/html")
 
-        actual val Image: MediaType = MediaType()
+        actual val Image: MediaType = MediaType("image/*")
 
-        actual val All: MediaType = MediaType()
+        actual val All: MediaType = MediaType("*/*")
+    }
+
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (other !is MediaType) return false
+
+        return representation == other.representation
+    }
+
+    override fun hashCode(): Int {
+        return representation.hashCode()
     }
 
     override fun toString(): String {
-        return "MediaType(" +
-            "representation='$representation')"
+        return "MediaType(representation='$representation')"
     }
 }

@@ -14,15 +14,20 @@
  * limitations under the License.
  */
 
-package androidx.compose.foundation.content.internal
+package androidx.compose.foundation.content
 
-import androidx.compose.ui.draganddrop.DragAndDropEvent
-import androidx.compose.ui.draganddrop.DragAndDropTargetModifierNode
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.ui.platform.ClipEntry
 
-internal actual fun ReceiveContentDragAndDropNode(
-    receiveContentConfiguration: ReceiveContentConfiguration,
-    dragAndDropRequestPermission: (DragAndDropEvent) -> Unit
-): DragAndDropTargetModifierNode {
-    // TODO: https://youtrack.jetbrains.com/issue/CMP-1263
-    throw NotImplementedError()
+// TODO https://youtrack.jetbrains.com/issue/COMPOSE-1263/Implement-Modifier.receiveContent
+
+@ExperimentalFoundationApi
+actual fun TransferableContent.hasMediaType(mediaType: MediaType): Boolean {
+    return false
+}
+
+internal actual fun ClipEntry.readPlainText(): String? = null
+
+internal actual fun ClipEntry.readPlainTextWhenLoaded(onResult: (String?) -> Unit) {
+    onResult(readPlainText())
 }

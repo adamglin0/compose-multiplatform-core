@@ -14,11 +14,15 @@
  * limitations under the License.
  */
 
-package androidx.compose.foundation.content
+package androidx.compose.foundation.content.internal
 
-import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.ui.draganddrop.DragAndDropEvent
+import androidx.compose.ui.draganddrop.DragAndDropTargetModifierNode
 
-// TODO https://youtrack.jetbrains.com/issue/COMPOSE-1263/Implement-Modifier.receiveContent
-
-@ExperimentalFoundationApi
-actual class PlatformTransferableContent internal constructor()
+internal actual fun ReceiveContentDragAndDropNode(
+    receiveContentConfiguration: ReceiveContentConfiguration,
+    dragAndDropRequestPermission: (DragAndDropEvent) -> Unit
+): DragAndDropTargetModifierNode {
+    // TODO: https://youtrack.jetbrains.com/issue/CMP-1263
+    throw NotImplementedError("Modifier.contentReceiver isn't supported on this platform yet")
+}

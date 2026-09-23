@@ -158,3 +158,6 @@ internal actual fun createPlatformClipboardManager(): ClipboardManager = AwtClip
 
 internal actual fun createPlatformClipboard(): Clipboard = AwtPlatformClipboard()
 
+
+// TODO: https://youtrack.jetbrains.com/issue/CMP-1260
+actual class ClipMetadata private constructor()
