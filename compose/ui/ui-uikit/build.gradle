@@ -49,6 +49,8 @@ private def xcodeArchiveArgs(libraryName, buildDir, sdkName, destination, archit
             "-destination", destination,
             "SKIP_INSTALL=NO",
             "BUILD_LIBRARY_FOR_DISTRIBUTION=YES",
+            // Xcode 27 rejects the 14.0 target checked into the .xcodeproj (minimum is 15.0).
+            "IPHONEOS_DEPLOYMENT_TARGET=15.0",
     ] + extraBuildSettings + [
             "VALID_ARCHS=${architecture}",
             "MACH_O_TYPE=staticlib"
