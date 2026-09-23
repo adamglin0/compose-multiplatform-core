@@ -101,3 +101,6 @@ actual class ClipEntry internal constructor() {
         }
     }
 }
+
+// TODO: https://youtrack.jetbrains.com/issue/CMP-1260
+actual class ClipMetadata private constructor()

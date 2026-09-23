@@ -70,6 +70,10 @@ internal fun List<DataFlavor>.hasMediaType(mediaType: MediaType): Boolean = fast
     it.mediaTypeRepresentation.matchesMediaType(mediaType)
 }
 
+internal actual fun ClipEntry.readPlainTextWhenLoaded(onResult: (String?) -> Unit) {
+    onResult(readPlainText())
+}
+
 internal actual fun ClipEntry.readPlainText(): String? {
     val transferable = asAwtTransferable ?: return null
     return try {

@@ -18,9 +18,7 @@ package androidx.compose.foundation.content
 
 import androidx.compose.foundation.ExperimentalFoundationApi
 
-/**
- * There is no platform specific information attached to a [TransferableContent] on this platform.
- * The platform representation of the content is available through [TransferableContent.clipEntry].
- */
+// TODO https://youtrack.jetbrains.com/issue/COMPOSE-1263/Implement-Modifier.receiveContent
+
 @ExperimentalFoundationApi
 actual class PlatformTransferableContent internal constructor()

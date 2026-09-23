@@ -32,3 +32,6 @@ public actual fun TransferableContent.hasMediaType(mediaType: MediaType): Boolea
     implementedInJetBrainsFork()
 
 internal actual fun ClipEntry.readPlainText(): String? = implementedInJetBrainsFork()
+
+internal actual fun ClipEntry.readPlainTextWhenLoaded(onResult: (String?) -> Unit): Unit =
+    implementedInJetBrainsFork()

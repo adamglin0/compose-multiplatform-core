@@ -23,7 +23,7 @@ import androidx.compose.foundation.content.TransferableContent
 import androidx.compose.foundation.content.internal.ReceiveContentConfiguration
 import androidx.compose.foundation.content.internal.dragAndDropRequestPermission
 import androidx.compose.foundation.content.internal.getReceiveContentConfiguration
-import androidx.compose.foundation.content.readPlainText
+import androidx.compose.foundation.content.readPlainTextWhenLoaded
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.Handle
@@ -71,6 +71,7 @@ import androidx.compose.ui.node.currentValueOf
 import androidx.compose.ui.node.invalidateSemantics
 import androidx.compose.ui.node.observeReads
 import androidx.compose.ui.node.requestAutofill
+import androidx.compose.ui.platform.ClipEntry
 import androidx.compose.ui.platform.InspectorInfo
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalInputModeManager
@@ -319,7 +320,7 @@ internal class TextFieldDecoratorModifierNode(
                 onDrop = { clipEntry, clipMetadata ->
                     emitDragExitEvent()
                     textFieldSelectionState.clearHandleDragging()
-                    var plainText = clipEntry.readPlainText()
+                    var remainingClipEntry: ClipEntry? = clipEntry
 
                     val receiveContentConfiguration = getReceiveContentConfiguration()
                     // if receiveContent configuration is set, all drag operations should be
@@ -336,9 +337,13 @@ internal class TextFieldDecoratorModifierNode(
                             receiveContentConfiguration.receiveContentListener.onReceive(
                                 transferableContent
                             )
-                        plainText = remaining?.clipEntry?.readPlainText()
+                        remainingClipEntry = remaining?.clipEntry
                     }
-                    plainText?.let(textFieldState::replaceSelectedText)
+                    // Some platforms only load the dropped text asynchronously, by which time
+                    // the text field may have left the composition.
+                    remainingClipEntry?.readPlainTextWhenLoaded { plainText ->
+                        if (isAttached) plainText?.let(textFieldState::replaceSelectedText)
+                    }
                     true
                 },
                 onExited = {
@@ -513,10 +518,9 @@ internal class TextFieldDecoratorModifierNode(
 
                 if (isFocused && toolbarAndHandlesVisibilityObserverJob != null) {
                     toolbarAndHandlesVisibilityObserverJob?.cancel()
-                    toolbarAndHandlesVisibilityObserverJob =
-                        coroutineScope.launch {
-                            textFieldSelectionState.startToolbarAndHandlesVisibilityObserver()
-                        }
+                    toolbarAndHandlesVisibilityObserverJob = coroutineScope.launch {
+                        textFieldSelectionState.startToolbarAndHandlesVisibilityObserver()
+                    }
                 }
             }
             textFieldSelectionState.requestAutofillAction = { requestAutofill() }
@@ -708,10 +712,9 @@ internal class TextFieldDecoratorModifierNode(
         textFieldSelectionState.isWindowAndTextFieldFocused = this.isFocused
         if (isFocused && toolbarAndHandlesVisibilityObserverJob == null) {
             // only start a new job is there's not an ongoing one.
-            toolbarAndHandlesVisibilityObserverJob =
-                coroutineScope.launch {
-                    textFieldSelectionState.startToolbarAndHandlesVisibilityObserver()
-                }
+            toolbarAndHandlesVisibilityObserverJob = coroutineScope.launch {
+                textFieldSelectionState.startToolbarAndHandlesVisibilityObserver()
+            }
         } else if (!isFocused) {
             toolbarAndHandlesVisibilityObserverJob?.cancel()
             toolbarAndHandlesVisibilityObserverJob = null
