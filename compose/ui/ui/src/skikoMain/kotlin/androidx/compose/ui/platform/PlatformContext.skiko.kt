@@ -52,7 +52,6 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.ImeOptions
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.intl.LocaleList
-import androidx.compose.ui.unit.Dp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.ViewModelStoreOwner
@@ -455,25 +454,10 @@ private object NoOpHapticFeedback : HapticFeedback {
     override fun performHapticFeedback(hapticFeedbackType: HapticFeedbackType) = Unit
 }
 
+// Shared by all platform contexts without media support, so it's typed as [UiMediaScope] to keep
+// it immutable.
 @ExperimentalMediaQueryApi
-private object EmptyMediaScope : UiMediaScope {
-    override val windowPosture: UiMediaScope.Posture
-        get() = UiMediaScope.Posture.Flat
-    override val windowWidth: Dp
-        get() = Dp.Unspecified
-    override val windowHeight: Dp
-        get() = Dp.Unspecified
-    override val pointerPrecision: UiMediaScope.PointerPrecision
-        get() = UiMediaScope.PointerPrecision.None
-    override val keyboardKind: UiMediaScope.KeyboardKind
-        get() = UiMediaScope.KeyboardKind.None
-    override val hasMicrophone: Boolean
-        get() = false
-    override val hasCamera: Boolean
-        get() = false
-    override val viewingDistance: UiMediaScope.ViewingDistance
-        get() = UiMediaScope.ViewingDistance.Near
-}
+private val EmptyMediaScope: UiMediaScope = SkikoMediaScope()
 
 private object DefaultTaskDispatchers: TaskDispatchers {
     override val Default = Dispatchers.Default

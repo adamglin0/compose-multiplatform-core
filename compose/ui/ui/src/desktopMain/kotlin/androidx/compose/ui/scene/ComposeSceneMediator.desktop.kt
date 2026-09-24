@@ -21,7 +21,9 @@ import androidx.compose.runtime.CompositionLocalContext
 import androidx.compose.runtime.mutableStateSetOf
 import androidx.compose.ui.ComposeFeatureFlags
 import androidx.compose.ui.ComposeUiFlags
+import androidx.compose.ui.ExperimentalMediaQueryApi
 import androidx.compose.ui.ProvideSystemTheme
+import androidx.compose.ui.UiMediaScope
 import androidx.compose.ui.awt.AwtEventListener
 import androidx.compose.ui.awt.AwtEventListeners
 import androidx.compose.ui.awt.DebouncingEdtExecutor
@@ -61,6 +63,7 @@ import androidx.compose.ui.platform.PlatformContext
 import androidx.compose.ui.platform.PlatformDragAndDropManager
 import androidx.compose.ui.platform.PlatformTextInputMethodRequest
 import androidx.compose.ui.platform.PlatformWindowContext
+import androidx.compose.ui.platform.SkikoMediaScope
 import androidx.compose.ui.platform.UriHandler
 import androidx.compose.ui.platform.TaskDispatchers
 import androidx.compose.ui.platform.ViewConfiguration
@@ -876,6 +879,10 @@ internal class ComposeSceneMediator(
         override val inputModeManager: InputModeManager by lazy(LazyThreadSafetyMode.NONE) {
             DefaultInputModeManager()
         }
+
+        // AWT can't enumerate input devices, so assume a mouse or a trackpad is available.
+        @ExperimentalMediaQueryApi
+        override val mediaScope: UiMediaScope = SkikoMediaScope(UiMediaScope.PointerPrecision.Fine)
 
         override val clipboard: Clipboard by lazy(LazyThreadSafetyMode.NONE) {
             createPlatformClipboard()

@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-@file:OptIn(ExperimentalWasmJsInterop::class)
+@file:OptIn(ExperimentalWasmJsInterop::class, ExperimentalMediaQueryApi::class)
 
 package androidx.compose.ui.window
 
@@ -29,7 +29,9 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.ProvidableCompositionLocal
 import androidx.compose.runtime.snapshots.Snapshot
 import androidx.compose.runtime.staticCompositionLocalOf
+import androidx.compose.ui.ExperimentalMediaQueryApi
 import androidx.compose.ui.LocalSystemTheme
+import androidx.compose.ui.UiMediaScope
 import androidx.compose.ui.asComposeSystemTheme
 import androidx.compose.ui.draganddrop.WebDragAndDropManager
 import androidx.compose.ui.events.EventTargetListener
@@ -265,6 +267,8 @@ internal class ComposeWindow(
 
     private val clipTarget = clipTargetElement(canvas)
 
+    private val pointerPrecisionObserver = PointerPrecisionObserver()
+
     // TODO: It must be shared between Compose instances.
     //  It's supposed to be stored in platform's root view or window.
     private val frameRecomposer = FrameRecomposer(Dispatchers.Main, invalidate = { skiaLayer.needRender() })
@@ -283,6 +287,8 @@ internal class ComposeWindow(
             override val outOfFrameExecutor: PlatformOutOfFrameExecutor? get() = webOutOfFrameExecutor
 
             override val windowInfo get() = _windowInfo
+
+            override val mediaScope: UiMediaScope get() = pointerPrecisionObserver.mediaScope
 
             override val screenReader: PlatformScreenReader
                 get() = object : PlatformScreenReader {
@@ -761,6 +767,7 @@ internal class ComposeWindow(
 
         insetsManager?.dispose()
         systemThemeObserver.dispose()
+        pointerPrecisionObserver.dispose()
         state.dispose()
         // modern browsers supposed to garbage collect all events on the element disposed
         // but actually we never can be sure dom element was collected in first place

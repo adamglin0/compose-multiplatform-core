@@ -19,6 +19,8 @@
 package androidx.compose.ui.window
 
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.ExperimentalMediaQueryApi
+import androidx.compose.ui.UiMediaScope
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.asComposeCanvas
 import androidx.compose.ui.input.key.KeyEvent
@@ -30,6 +32,7 @@ import androidx.compose.ui.input.pointer.PointerIcon
 import androidx.compose.ui.platform.DefaultArchitectureComponentsOwner
 import androidx.compose.ui.platform.MacosTextInputService
 import androidx.compose.ui.platform.PlatformContext
+import androidx.compose.ui.platform.SkikoMediaScope
 import androidx.compose.ui.platform.WindowInfoImpl
 import androidx.compose.ui.platform.registerSkikoComposeImplementation
 import androidx.compose.ui.scene.CanvasLayersComposeScene
@@ -123,6 +126,9 @@ private class ComposeWindow(
             }
             override val architectureComponentsOwner get() = archComponentsOwner
             override val textInputService get() = macosTextInputService
+            @ExperimentalMediaQueryApi
+            override val mediaScope: UiMediaScope =
+                SkikoMediaScope(UiMediaScope.PointerPrecision.Fine)
             override fun setPointerIcon(pointerIcon: PointerIcon) {
                 val cursor = (pointerIcon as? MacosCursor)?.cursor ?: NSCursor.arrowCursor
                 cursor.set()

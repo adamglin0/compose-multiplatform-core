@@ -25,7 +25,9 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.annotation.VisibleForTesting
+import androidx.compose.ui.ExperimentalMediaQueryApi
 import androidx.compose.ui.InternalComposeUiApi
+import androidx.compose.ui.UiMediaScope
 import androidx.compose.ui.draganddrop.IosDragAndDropManager
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
@@ -113,6 +115,7 @@ import androidx.compose.ui.window.BackgroundInputView
 import androidx.compose.ui.window.FocusedViewsList
 import androidx.compose.ui.window.KeyboardInsetsManager
 import androidx.compose.ui.window.OverlayInputView
+import androidx.compose.ui.window.SharedPointerPrecisionListener
 import androidx.compose.ui.window.IosPrefetchScheduler
 import androidx.compose.ui.window.TouchesEventKind
 import kotlin.coroutines.CoroutineContext
@@ -205,6 +208,7 @@ private class SemanticsOwnerListenerImpl(
     }
 }
 
+@OptIn(ExperimentalMediaQueryApi::class)
 internal class ComposeSceneMediator(
     private val frameChoreographer: FrameChoreographer,
     private val onFocusBehavior: OnFocusBehavior,
@@ -225,6 +229,8 @@ internal class ComposeSceneMediator(
         override var isActive by mutableStateOf(false)
     }
     private val activitiesHandler = frameChoreographer.createActivitiesHandler()
+
+    private val pointerPrecisionListener = SharedPointerPrecisionListener
 
     private val coroutineScope = CoroutineScope(coroutineContext)
 
@@ -596,6 +602,9 @@ internal class ComposeSceneMediator(
         event: UIEvent?,
         eventKind: TouchesEventKind
     ) {
+        // Hover is only reported for a trackpad, a mouse or a hovering Apple Pencil.
+        pointerPrecisionListener.onPrecisePointerObserved()
+
         val eventType = when (eventKind) {
             TouchesEventKind.BEGAN -> PointerEventType.Enter
             TouchesEventKind.MOVED -> PointerEventType.Move
@@ -647,11 +656,15 @@ internal class ComposeSceneMediator(
 
         val pointers = allTrackedTouches.mapIndexed { index, touch ->
             val position = touch.offsetInView(_backgroundView, screenDensity.density)
-            val pointerType = when (touch.type) {
+            val touchType = touch.type
+            val pointerType = when (touchType) {
                 UITouchTypeDirect -> PointerType.Touch
                 UITouchTypeIndirect, UITouchTypeIndirectPointer -> PointerType.Mouse
                 UITouchTypePencil -> PointerType.Stylus
                 else -> PointerType.Touch
+            }
+            if (touchType == UITouchTypePencil || touchType == UITouchTypeIndirectPointer) {
+                pointerPrecisionListener.onPrecisePointerObserved()
             }
             val id = touch.hashCode().toLong().takeIf {
                 pointerType != PointerType.Mouse
@@ -1003,6 +1016,8 @@ internal class ComposeSceneMediator(
         override val inputModeManager by lazy(LazyThreadSafetyMode.NONE) {
             DefaultInputModeManager(InputMode.Touch)
         }
+
+        override val mediaScope: UiMediaScope get() = pointerPrecisionListener.mediaScope
 
         override val textInputService get() = this@ComposeSceneMediator.textInputServiceAdapter
         override val textToolbar get() = this@ComposeSceneMediator.textInputService.textToolbar
