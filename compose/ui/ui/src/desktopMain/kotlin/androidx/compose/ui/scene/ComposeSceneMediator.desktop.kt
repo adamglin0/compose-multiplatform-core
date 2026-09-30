@@ -21,7 +21,9 @@ import androidx.compose.runtime.CompositionLocalContext
 import androidx.compose.runtime.mutableStateSetOf
 import androidx.compose.ui.ComposeFeatureFlags
 import androidx.compose.ui.ComposeUiFlags
+import androidx.compose.ui.ExperimentalMediaQueryApi
 import androidx.compose.ui.ProvideSystemTheme
+import androidx.compose.ui.UiMediaScope
 import androidx.compose.ui.awt.AwtEventListener
 import androidx.compose.ui.awt.AwtEventListeners
 import androidx.compose.ui.awt.DebouncingEdtExecutor
@@ -53,6 +55,7 @@ import androidx.compose.ui.platform.AwtDragAndDropManager
 import androidx.compose.ui.platform.Clipboard
 import androidx.compose.ui.platform.DefaultInputModeManager
 import androidx.compose.ui.platform.DelegateRootForTestListener
+import androidx.compose.ui.platform.DesktopMediaScope
 import androidx.compose.ui.platform.DesktopTextInputService
 import androidx.compose.ui.platform.DesktopTextInputService2
 import androidx.compose.ui.platform.FrameRecomposer
@@ -168,6 +171,8 @@ internal class ComposeSceneMediator(
     private val textInputService by lazy(LazyThreadSafetyMode.NONE) {
         DesktopTextInputService(platformComponent)
     }
+
+    private val desktopMediaScope = DesktopMediaScope(windowInfo = windowContext.windowInfo)
 
     private val textInputService2 by lazy(LazyThreadSafetyMode.NONE) {
         DesktopTextInputService2(platformComponent)
@@ -638,6 +643,8 @@ internal class ComposeSceneMediator(
         // Since rendering will not happen after, we need to execute all scheduled updates
         interopContainer.dispose()
 
+        desktopMediaScope.dispose()
+
         _onComponentAttached = null
     }
 
@@ -843,6 +850,8 @@ internal class ComposeSceneMediator(
 
     private inner class DesktopPlatformContext : PlatformContext {
         override val windowInfo: WindowInfo get() = windowContext.windowInfo
+        @OptIn(ExperimentalMediaQueryApi::class)
+        override val mediaScope: UiMediaScope get() = desktopMediaScope
 
         override val taskDispatchers: TaskDispatchers = object : TaskDispatchers {
             override val Default = Dispatchers.Default
