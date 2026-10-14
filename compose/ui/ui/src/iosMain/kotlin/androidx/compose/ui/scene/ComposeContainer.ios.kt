@@ -201,7 +201,8 @@ internal class ComposeContainer(
     }
 
     fun hasInvalidations(): Boolean {
-        return mediator?.hasInvalidations == true || layersHolder?.layersViewController?.hasInvalidations == true
+        return view.hasInvalidations || mediator?.hasInvalidations == true ||
+            layersHolder?.layersViewController?.hasInvalidations == true
     }
 
     private val currentInterfaceOrientation: InterfaceOrientation?
@@ -361,7 +362,7 @@ internal class ComposeContainer(
                 onDraw = { needsSynchronousDraw ->
                     metalView.redrawer.onDraw(
                         needsSynchronousDraw = needsSynchronousDraw,
-                        needsComposeSceneDraw = mediator.needsComposeSceneDraw,
+                        needsDraw = mediator.needsComposeSceneDraw,
                         retrievePendingViewUpdatesInteropTransaction =
                             mediator::retrievePendingViewUpdatesInteropTransaction,
                     )
