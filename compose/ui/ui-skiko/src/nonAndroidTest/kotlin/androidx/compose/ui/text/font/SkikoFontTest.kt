@@ -199,12 +199,6 @@ class SkikoFontTest {
     }
 
     @Test
-    fun defaultVariationSettings_isEmpty() {
-        val font = TestSkikoFont(identity = "font")
-        assertTrue(font.variationSettings.settings.isEmpty())
-    }
-
-    @Test
     fun variationSettings_isPreserved() {
         val settings = FontVariation.Settings(
             FontVariation.Setting("wght", 500f),
@@ -261,7 +255,7 @@ class SkikoFontTest {
 
 private class OtherTestSkikoFont(
     override val identity: String,
-) : SkikoFont(FontLoadingStrategy.Blocking, NoOpTypefaceLoader) {
+) : SkikoFont(FontLoadingStrategy.Blocking, NoOpTypefaceLoader, FontVariation.Settings()) {
     override val weight: FontWeight = FontWeight.Normal
     override val style: FontStyle = FontStyle.Normal
 }

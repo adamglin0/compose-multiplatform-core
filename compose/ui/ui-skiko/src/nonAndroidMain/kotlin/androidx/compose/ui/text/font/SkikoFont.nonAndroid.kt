@@ -31,6 +31,11 @@ import org.jetbrains.skia.Typeface as SkTypeface
  * a Typeface from a local resource not supported by an existing [Font]. Or, you can create an
  * [FontLoadingStrategy.Async] font that loads a font file from a server.
  *
+ * When introducing new font descriptors, it is recommended to keep the [SkikoFont] subclass
+ * internal or private and expose a public `Font(...)` function that returns it. That function is
+ * the place for a default such as `variationSettings = FontVariation.Settings(weight, style)`,
+ * since [weight] and [style] are known there.
+ *
  * Two [SkikoFont]s are equal when they have the same class, [identity], [weight], [style],
  * [loadingStrategy] and [variationSettings]; font resolution caches results by this equality. Any
  * state that changes which font file is loaded must be part of [identity], because the loaded
@@ -48,9 +53,8 @@ import org.jetbrains.skia.Typeface as SkTypeface
  * @param typefaceLoader a loader that knows how to load this [SkikoFont], may be shared between
  *   several fonts
  * @param variationSettings the settings that will be applied to this font, if supported by the font.
- *   Defaults to empty settings. Prefer passing [FontVariation.Settings] built from [weight] and
- *   [style] (for example `FontVariation.Settings(weight, style)`) when those axes should be applied
- *   to variable fonts.
+ *   Usually `FontVariation.Settings(weight, style)`, so that a variable font is drawn with the
+ *   declared [weight] and [style]. Pass `FontVariation.Settings()` to apply no variations.
  */
 @ExperimentalTextApi
 abstract class SkikoFont(
@@ -65,7 +69,7 @@ abstract class SkikoFont(
      * framework applies them after [TypefaceLoader] returns. Loaders should return an unvaried
      * typeface.
      */
-    final override val variationSettings: FontVariation.Settings = FontVariation.Settings()
+    final override val variationSettings: FontVariation.Settings,
 ) : Font {
 
     /**

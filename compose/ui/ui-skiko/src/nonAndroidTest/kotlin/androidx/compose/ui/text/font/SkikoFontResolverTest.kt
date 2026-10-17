@@ -134,7 +134,7 @@ private suspend fun awaitCondition(condition: () -> Boolean) {
 private class AsyncTestFont(
     override val identity: String,
     typefaceLoader: SkikoFont.TypefaceLoader,
-) : SkikoFont(FontLoadingStrategy.Async, typefaceLoader) {
+) : SkikoFont(FontLoadingStrategy.Async, typefaceLoader, FontVariation.Settings()) {
     override val weight: FontWeight = FontWeight.Normal
     override val style: FontStyle = FontStyle.Normal
 }
