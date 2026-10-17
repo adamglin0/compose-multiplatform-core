@@ -16,6 +16,7 @@
 
 package androidx.compose.ui.text.font
 
+import androidx.compose.ui.text.ExperimentalTextApi
 import org.jetbrains.skia.Typeface as SkTypeface
 
 /**
@@ -30,10 +31,12 @@ import org.jetbrains.skia.Typeface as SkTypeface
  * a Typeface from a local resource not supported by an existing [Font]. Or, you can create an
  * [FontLoadingStrategy.Async] font that loads a font file from a server.
  *
- * Subclasses should implement [equals] and [hashCode] based on the values that uniquely identify
- * the font (typically [identity], [weight], [style], [loadingStrategy], and [variationSettings]).
- * Prefer globally unique [identity] values across all [SkikoFont] subclasses, because the internal
- * registration key is shared under a common `SkikoFont|` prefix.
+ * Two [SkikoFont]s are equal when they have the same class, [identity], [weight], [style],
+ * [loadingStrategy] and [variationSettings]; font resolution caches results by this equality. Any
+ * state that changes which font file is loaded must be part of [identity], because the loaded
+ * typeface is also cached by [identity] alone. Prefer globally unique [identity] values across all
+ * [SkikoFont] subclasses, because the internal registration key is shared under a common
+ * `SkikoFont|` prefix.
  *
  * Async loads started by text layout run on the main thread. [FontFamily.Resolver.preload] instead
  * calls [TypefaceLoader.awaitLoad] in the caller's coroutine context, and the loaded typeface is
@@ -49,6 +52,7 @@ import org.jetbrains.skia.Typeface as SkTypeface
  *   [style] (for example `FontVariation.Settings(weight, style)`) when those axes should be applied
  *   to variable fonts.
  */
+@ExperimentalTextApi
 abstract class SkikoFont(
     final override val loadingStrategy: FontLoadingStrategy,
     val typefaceLoader: TypefaceLoader,
@@ -98,6 +102,30 @@ abstract class SkikoFont(
             "$baseCacheKey|weight=${weight.weight}|style=$style|" +
                 "variationSettings=${variationSettings.settings}"
 
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (other == null || this::class != other::class) return false
+        other as SkikoFont
+        return identity == other.identity &&
+            weight == other.weight &&
+            style == other.style &&
+            loadingStrategy == other.loadingStrategy &&
+            variationSettings == other.variationSettings
+    }
+
+    override fun hashCode(): Int {
+        var result = identity.hashCode()
+        result = 31 * result + weight.hashCode()
+        result = 31 * result + style.hashCode()
+        result = 31 * result + loadingStrategy.hashCode()
+        result = 31 * result + variationSettings.hashCode()
+        return result
+    }
+
+    override fun toString(): String =
+        "${this::class.simpleName}(identity=$identity, weight=$weight, style=$style, " +
+            "loadingStrategy=$loadingStrategy, variationSettings=$variationSettings)"
+
     /**
      * Loader for loading a [SkikoFont] and producing an [org.jetbrains.skia.Typeface].
      *
@@ -130,6 +158,7 @@ abstract class SkikoFont(
      * on [SkikoFont.weight], [SkikoFont.style], or [SkikoFont.variationSettings] to pick different
      * files; those are applied after load for matching and variation cloning.
      */
+    @ExperimentalTextApi
     interface TypefaceLoader {
         /**
          * Immediately load the font in a blocking manner such that it will be available this frame.
@@ -174,7 +203,8 @@ abstract class SkikoFont(
          * Returning null, throwing, or timing out is a permanent failure: the [FontFamily.Resolver]
          * keeps using the fallback font for this font (and any font equal to it) and does not call
          * [awaitLoad] for it again. When the load goes through [FontFamily.Resolver.preload], the
-         * failure is thrown from `preload` as an [IllegalStateException] instead. Implementations
+         * failure is thrown from `preload` as an [IllegalStateException] instead and is not
+         * remembered, so a later `preload` or text layout calls [awaitLoad] again. Implementations
          * that load from unreliable sources, such as the network, should retry transient failures
          * inside this method before giving up.
          *

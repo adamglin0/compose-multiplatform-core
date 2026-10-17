@@ -14,11 +14,12 @@
  * limitations under the License.
  */
 
-@file:OptIn(InternalComposeUiApi::class)
+@file:OptIn(InternalComposeUiApi::class, ExperimentalTextApi::class)
 
 package androidx.compose.ui.text.font
 
 import androidx.compose.ui.InternalComposeUiApi
+import androidx.compose.ui.text.ExperimentalTextApi
 import androidx.compose.ui.text.font.FontLoadingStrategy.Companion.Async
 import androidx.compose.ui.text.font.FontLoadingStrategy.Companion.Blocking
 import androidx.compose.ui.text.font.FontLoadingStrategy.Companion.OptionalLocal
@@ -97,9 +98,10 @@ internal class SkiaFontLoader(
      * 2. Clone variation and cache it under [SkikoFont.cacheKey]
      */
     private fun finishSkikoFont(font: SkikoFont, unvaried: SkTypeface): FontLoadResult {
-        fontCache.put(font.baseCacheKey, unvaried)
+        // Another load of the same identity may have finished first; clone from the cached face.
+        val base = fontCache.getOrPut(font.baseCacheKey, unvaried)
         return fontCache.register(
-            unvaried.cloneWithVariationSettings(font.variationSettings),
+            base.cloneWithVariationSettings(font.variationSettings),
             font.cacheKey,
         )
     }

@@ -14,6 +14,8 @@
  * limitations under the License.
  */
 
+@file:OptIn(ExperimentalTextApi::class)
+
 package androidx.compose.ui.text.font
 
 import androidx.compose.runtime.State
@@ -107,7 +109,6 @@ class SkikoFontResolverTest {
      * Only the dispatcher is passed: the resolver parents its own SupervisorJob to any injected
      * Job, and that job never completes, so passing the test's Job would keep runBlocking waiting.
      */
-    @OptIn(ExperimentalTextApi::class)
     private fun CoroutineScope.createResolver(): FontFamily.Resolver =
         createPlatformFontFamilyResolver(
             SkiaFontLoader(),
@@ -136,11 +137,6 @@ private class AsyncTestFont(
 ) : SkikoFont(FontLoadingStrategy.Async, typefaceLoader) {
     override val weight: FontWeight = FontWeight.Normal
     override val style: FontStyle = FontStyle.Normal
-
-    override fun equals(other: Any?): Boolean =
-        other is AsyncTestFont && identity == other.identity && typefaceLoader == other.typefaceLoader
-
-    override fun hashCode(): Int = 31 * identity.hashCode() + typefaceLoader.hashCode()
 }
 
 private class GateTypefaceLoader(

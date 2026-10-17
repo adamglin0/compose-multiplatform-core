@@ -104,12 +104,12 @@ class FontCacheRegisterTest {
     }
 
     @Test
-    fun put_doesNotRegisterInFontCollection() {
+    fun getOrPut_doesNotRegisterInFontCollection() {
         val cache = FontCache()
         val typeface = SkTypeface.makeEmpty()
         val key = "unvaried-only-key"
 
-        val stored = cache.put(key, typeface)
+        val stored = cache.getOrPut(key, typeface)
         assertSame(typeface, stored)
         assertSame(typeface, cache.get(key))
 
@@ -119,7 +119,7 @@ class FontCacheRegisterTest {
         val registeredOurFace = found?.any { it === typeface } == true
         assertTrue(
             !registeredOurFace,
-            "put() must not register the typeface in FontCollection"
+            "getOrPut() must not register the typeface in FontCollection"
         )
     }
 
@@ -130,12 +130,12 @@ class FontCacheRegisterTest {
     }
 
     @Test
-    fun put_sameKey_reusesCachedTypeface() {
+    fun getOrPut_sameKey_reusesCachedTypeface() {
         val cache = FontCache()
         val typeface1 = SkTypeface.makeEmpty()
         val typeface2 = SkTypeface.makeEmpty()
-        assertSame(typeface1, cache.put("k", typeface1))
-        assertSame(typeface1, cache.put("k", typeface2))
+        assertSame(typeface1, cache.getOrPut("k", typeface1))
+        assertSame(typeface1, cache.getOrPut("k", typeface2))
         assertSame(typeface1, cache.get("k"))
     }
 }

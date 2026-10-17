@@ -14,8 +14,11 @@
  * limitations under the License.
  */
 
+@file:OptIn(ExperimentalTextApi::class)
+
 package androidx.compose.ui.text.font
 
+import androidx.compose.ui.text.ExperimentalTextApi
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotEquals
@@ -212,4 +215,58 @@ class SkikoFontTest {
         assertEquals("wght", font.variationSettings.settings[0].axisName)
         assertEquals("ital", font.variationSettings.settings[1].axisName)
     }
+
+    @Test
+    fun equals_sameDescription_isEqual() {
+        val settings = FontVariation.Settings(FontVariation.Setting("wght", 500f))
+        val font1 = TestSkikoFont(identity = "font", variationSettings = settings)
+        val font2 = TestSkikoFont(identity = "font", variationSettings = settings)
+        assertEquals(font1, font2)
+        assertEquals(font1.hashCode(), font2.hashCode())
+    }
+
+    @Test
+    fun equals_ignoresTypefaceLoader() {
+        val font1 = TestSkikoFont(identity = "font", typefaceLoader = NoOpTypefaceLoader)
+        val font2 = TestSkikoFont(identity = "font", typefaceLoader = OtherTypefaceLoader)
+        assertEquals(font1, font2)
+    }
+
+    @Test
+    fun equals_differentDescription_isNotEqual() {
+        val font = TestSkikoFont(identity = "font")
+        assertNotEquals(font, TestSkikoFont(identity = "other"))
+        assertNotEquals(font, TestSkikoFont(identity = "font", weight = FontWeight.Bold))
+        assertNotEquals(font, TestSkikoFont(identity = "font", style = FontStyle.Italic))
+        assertNotEquals(
+            font,
+            TestSkikoFont(identity = "font", loadingStrategy = FontLoadingStrategy.Async)
+        )
+        assertNotEquals(
+            font,
+            TestSkikoFont(
+                identity = "font",
+                variationSettings = FontVariation.Settings(FontVariation.Setting("wght", 500f)),
+            )
+        )
+    }
+
+    @Test
+    fun equals_differentSubclass_isNotEqual() {
+        val font = TestSkikoFont(identity = "font")
+        val other = OtherTestSkikoFont(identity = "font")
+        assertNotEquals<SkikoFont>(font, other)
+    }
+}
+
+private class OtherTestSkikoFont(
+    override val identity: String,
+) : SkikoFont(FontLoadingStrategy.Blocking, NoOpTypefaceLoader) {
+    override val weight: FontWeight = FontWeight.Normal
+    override val style: FontStyle = FontStyle.Normal
+}
+
+private object OtherTypefaceLoader : SkikoFont.TypefaceLoader {
+    override fun loadBlocking(font: SkikoFont): SkTypeface? = null
+    override suspend fun awaitLoad(font: SkikoFont): SkTypeface? = null
 }

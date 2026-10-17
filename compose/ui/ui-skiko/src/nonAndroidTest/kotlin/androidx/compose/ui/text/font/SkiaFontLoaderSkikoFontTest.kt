@@ -14,8 +14,11 @@
  * limitations under the License.
  */
 
+@file:OptIn(ExperimentalTextApi::class)
+
 package androidx.compose.ui.text.font
 
+import androidx.compose.ui.text.ExperimentalTextApi
 import androidx.compose.ui.text.platform.FontLoadResult
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -25,7 +28,10 @@ import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertSame
 import kotlin.test.assertTrue
+import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.async
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.yield
 import kotlinx.test.IgnoreJsTarget
 import kotlinx.test.IgnoreWasmTarget
 import org.jetbrains.skia.Typeface as SkTypeface
@@ -218,6 +224,57 @@ class SkiaFontLoaderSkikoFontTest {
             assertEquals(fontB.cacheKey, resultB.aliases.first())
             assertNotNull(resultA.typeface)
             assertNotNull(resultB.typeface)
+        }
+    }
+
+    @Test
+    fun awaitLoad_concurrentSameIdentity_secondLoadClonesFromCachedBase() {
+        runBlocking {
+            val typefaces = mapOf(
+                FontWeight.Normal to SkTypeface.makeEmpty(),
+                FontWeight.Bold to SkTypeface.makeEmpty(),
+            )
+            val gates = typefaces.mapValues { CompletableDeferred<Unit>() }
+            val requested = mutableListOf<FontWeight>()
+            val typefaceLoader = object : SkikoFont.TypefaceLoader {
+                override fun loadBlocking(font: SkikoFont): SkTypeface? =
+                    error("should not be called")
+
+                override suspend fun awaitLoad(font: SkikoFont): SkTypeface {
+                    requested += font.weight
+                    gates.getValue(font.weight).await()
+                    return typefaces.getValue(font.weight)
+                }
+            }
+            // Empty variation settings: the clone is the base face itself, so the result shows
+            // which unvaried face it was made from.
+            val regular = createTestFont(
+                identity = "concurrent-base",
+                weight = FontWeight.Normal,
+                loadingStrategy = FontLoadingStrategy.Async,
+                typefaceLoader = typefaceLoader,
+            )
+            val bold = createTestFont(
+                identity = "concurrent-base",
+                weight = FontWeight.Bold,
+                loadingStrategy = FontLoadingStrategy.Async,
+                typefaceLoader = typefaceLoader,
+            )
+
+            // Both loads miss the base cache and suspend in the TypefaceLoader.
+            val regularLoad = async { loader.awaitLoad(regular) as FontLoadResult }
+            val boldLoad = async { loader.awaitLoad(bold) as FontLoadResult }
+            yield()
+            assertEquals(listOf(FontWeight.Normal, FontWeight.Bold), requested)
+
+            gates.getValue(FontWeight.Normal).complete(Unit)
+            val regularResult = regularLoad.await()
+            gates.getValue(FontWeight.Bold).complete(Unit)
+            val boldResult = boldLoad.await()
+
+            val regularFace = typefaces.getValue(FontWeight.Normal)
+            assertSame(regularFace, regularResult.typeface)
+            assertSame(regularFace, boldResult.typeface)
         }
     }
 

@@ -240,7 +240,7 @@ internal class FontCache {
      * Used for unvaried [androidx.compose.ui.text.font.SkikoFont] faces shared across
      * weight/style/variation clones (`baseCacheKey`).
      */
-    internal fun put(key: String, typeface: SkTypeface): SkTypeface =
+    internal fun getOrPut(key: String, typeface: SkTypeface): SkTypeface =
         typefacesCache.getOrPut(key) { typeface }
 
     /**
@@ -249,7 +249,7 @@ internal class FontCache {
      * If [key] is already cached, the existing typeface is reused and [typeface] is ignored.
      */
     internal fun register(typeface: SkTypeface, key: String): FontLoadResult {
-        val cached = put(key, typeface)
+        val cached = getOrPut(key, typeface)
         ensureRegistered(cached, key)
         return FontLoadResult(cached, listOf(key))
     }

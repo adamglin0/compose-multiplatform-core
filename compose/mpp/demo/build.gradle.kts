@@ -113,7 +113,6 @@ kotlin {
                 implementation(libs.kotlinCoroutinesCore)
                 implementation(libs.kotlinSerializationCore)
                 implementation(libs.skiko.skottie)
-                implementation(libs.ktor.client.engine.defaults)
 
                 implementation(project(":compose:foundation:foundation"))
                 implementation(project(":compose:foundation:foundation-layout"))
