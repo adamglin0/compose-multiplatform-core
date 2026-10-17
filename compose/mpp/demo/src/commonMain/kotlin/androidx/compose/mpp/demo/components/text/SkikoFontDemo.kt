@@ -52,27 +52,25 @@ import androidx.compose.ui.text.font.SkikoFont
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlin.math.roundToLong
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.async
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.withContext
 import org.jetbrains.skia.Data
 import org.jetbrains.skia.FontMgr
 import org.jetbrains.skia.Typeface
 
-private const val DemoFontFile = "RobotoFlex-VariableFont.ttf"
+// A monospace font, so the switch from the fallback font is easy to see.
+private const val DemoFontFile = "Inconsolata-Regular.ttf"
 
-private val DemoWeights = listOf(FontWeight.Light, FontWeight.Normal, FontWeight.Bold)
+private enum class LoadStatus { Loading, Loaded, Failed }
 
 private const val SampleText =
     "Compose Multiplatform is a declarative framework for sharing UI code across " +
         "multiple platforms with Kotlin."
 
 /**
- * Shows [FontLoadingStrategy.Async] [SkikoFont]s: text is drawn with the fallback font first and
- * reflows once the simulated load completes. All weights come from one variable font file, so
- * they share one [SkikoFont.identity], and the loader de-dups their concurrent loads.
+ * Shows a [FontLoadingStrategy.Async] [SkikoFont]: text is drawn with the fallback font first and
+ * reflows once the simulated load completes.
  */
 @Composable
 fun SkikoFontDemo() {
@@ -80,19 +78,13 @@ fun SkikoFontDemo() {
     var failLoad by remember { mutableStateOf(false) }
     // Loaded typefaces stay cached, so each run uses a new identity to load the font again.
     var run by remember { mutableIntStateOf(0) }
+    val loadStatus = remember(run) { mutableStateOf(LoadStatus.Loading) }
     val fontFamily = remember(run) {
         val typefaceLoader =
-            DelayedResourceTypefaceLoader(loadDelayMillis.roundToLong(), failLoad)
-        FontFamily(
-            DemoWeights.map { weight ->
-                DemoFont(
-                    identity = "$DemoFontFile#$run",
-                    weight = weight,
-                    style = FontStyle.Normal,
-                    typefaceLoader = typefaceLoader,
-                )
+            DelayedResourceTypefaceLoader(loadDelayMillis.roundToLong(), failLoad) { loaded ->
+                loadStatus.value = if (loaded) LoadStatus.Loaded else LoadStatus.Failed
             }
-        )
+        FontFamily(DemoFont(identity = "$DemoFontFile#$run", typefaceLoader = typefaceLoader))
     }
 
     Column(
@@ -113,56 +105,64 @@ fun SkikoFontDemo() {
             Text("Load again")
         }
         Divider()
+        LoadStatusText(loadStatus.value)
         Spacer(Modifier.height(8.dp))
-        for (weight in DemoWeights) {
-            Text("Weight ${weight.weight}", style = MaterialTheme.typography.caption)
-            Text(
-                SampleText,
-                style = TextStyle(fontFamily = fontFamily, fontWeight = weight, fontSize = 24.sp),
-            )
-        }
+        Text(SampleText, style = TextStyle(fontFamily = fontFamily, fontSize = 24.sp))
     }
 }
 
+@Composable
+private fun LoadStatusText(status: LoadStatus) {
+    val (text, color) = when (status) {
+        LoadStatus.Loading ->
+            "Loading... The text below uses the fallback font." to
+                MaterialTheme.colors.onSurface.copy(alpha = 0.6f)
+        LoadStatus.Loaded ->
+            "Loaded. The text below uses Inconsolata, a monospace font." to
+                MaterialTheme.colors.primary
+        LoadStatus.Failed ->
+            "Load failed. The text below keeps the fallback font." to MaterialTheme.colors.error
+    }
+    Text(text, color = color, style = MaterialTheme.typography.subtitle1)
+}
+
 /**
- * Loads the bundled font file after [delayMillis], imitating a slow network download.
- *
- * Fonts with the same identity start loading at the same time when text in several weights is
- * laid out in one frame, so they share one load per identity.
+ * Loads the bundled font file after [delayMillis], imitating a slow network download, and reports
+ * through [onFinished] whether it succeeded.
  */
 private class DelayedResourceTypefaceLoader(
     private val delayMillis: Long,
     private val fail: Boolean,
+    private val onFinished: (loaded: Boolean) -> Unit,
 ) : SkikoFont.TypefaceLoader {
-    // Not tied to a caller, so cancelling one caller doesn't cancel the load the others wait for.
-    private val scope = CoroutineScope(Dispatchers.Default)
-    private val loads = mutableMapOf<String, Deferred<Typeface?>>()
-
     override fun loadBlocking(font: SkikoFont): Typeface? = null
 
     override suspend fun awaitLoad(font: SkikoFont): Typeface? =
-        loads.getOrPut(font.identity) { scope.async { load() } }.await()
+        loadTypeface().also { onFinished(it != null) }
 
-    private suspend fun load(): Typeface? {
+    private suspend fun loadTypeface(): Typeface? {
         delay(delayMillis)
         if (fail) return null
         val bytes = loadResource(DemoFontFile) ?: return null
-        val data = Data.makeFromBytes(bytes)
-        return try {
-            FontMgr.default.makeFromData(data)
-        } finally {
-            data.close()
+        return withContext(Dispatchers.Default) {
+            val data = Data.makeFromBytes(bytes)
+            try {
+                FontMgr.default.makeFromData(data)
+            } finally {
+                data.close()
+            }
         }
     }
 }
 
 private class DemoFont(
     override val identity: String,
-    override val weight: FontWeight,
-    override val style: FontStyle,
     typefaceLoader: SkikoFont.TypefaceLoader,
 ) : SkikoFont(
     FontLoadingStrategy.Async,
     typefaceLoader,
-    FontVariation.Settings(weight, style),
-)
+    FontVariation.Settings(FontWeight.Normal, FontStyle.Normal),
+) {
+    override val weight: FontWeight = FontWeight.Normal
+    override val style: FontStyle = FontStyle.Normal
+}
