@@ -93,9 +93,9 @@ internal class SkiaFontLoader(
         get() = fontCache // results are valid for all shared caches
 
     /**
-     * Two-Level cache for [SkikoFont]
-     * 1. Cache unvaried typeface under [SkikoFont.baseCacheKey]
-     * 2. Clone variation and cache it under [SkikoFont.cacheKey]
+     * Two-level cache for [SkikoFont]:
+     * 1. Cache the unvaried typeface under [SkikoFont.baseCacheKey].
+     * 2. Clone it with the variation settings and cache the clone under [SkikoFont.cacheKey].
      */
     private fun finishSkikoFont(font: SkikoFont, unvaried: SkTypeface): FontLoadResult {
         // Another load of the same identity may have finished first; clone from the cached face.

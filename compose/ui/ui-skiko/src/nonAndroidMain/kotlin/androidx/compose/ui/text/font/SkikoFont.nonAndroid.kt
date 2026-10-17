@@ -76,8 +76,10 @@ abstract class SkikoFont(
      * Unique identity for this font's source (file, URL, asset id, etc.).
      *
      * Used as the unvaried load cache key via [baseCacheKey]: fonts that share the same [identity]
-     * share one TypefaceLoader result. Use a distinct [identity] for each distinct font file;
-     * do not rely on [weight], [style], or [variationSettings] to select different sources.
+     * share one TypefaceLoader result. Once it is cached, later loads reuse it; loads that start
+     * before it is cached each call the [TypefaceLoader], so loaders should de-dup those. Use a
+     * distinct [identity] for each distinct font file; do not rely on [weight], [style], or
+     * [variationSettings] to select different sources.
      *
      * Also combined with [weight], [style], and [variationSettings] into [cacheKey] for
      * font-collection registration / paragraph aliasing after variation is applied.

@@ -29,10 +29,9 @@ import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 import kotlinx.coroutines.CompletableDeferred
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.runBlocking
-import kotlinx.coroutines.withTimeout
-import kotlinx.coroutines.yield
+import kotlinx.coroutines.test.TestScope
+import kotlinx.coroutines.test.advanceUntilIdle
+import kotlinx.coroutines.test.runTest
 import kotlinx.test.IgnoreJsTarget
 import kotlinx.test.IgnoreWasmTarget
 import org.jetbrains.skia.Typeface as SkTypeface
@@ -49,7 +48,7 @@ import org.jetbrains.skia.Typeface as SkTypeface
 class SkikoFontResolverTest {
 
     @Test
-    fun resolve_asyncFont_returnsFallbackThenLoadedTypeface() = runBlocking {
+    fun resolve_asyncFont_returnsFallbackThenLoadedTypeface() = runTest {
         val typeface = CompletableDeferred<SkTypeface>()
         val font = AsyncTestFont("resolver-async", GateTypefaceLoader(typeface))
         val resolver = createResolver()
@@ -58,11 +57,12 @@ class SkikoFontResolverTest {
         assertFalse(result.isLoaded(font), "async font must not be available before it loads")
 
         typeface.complete(SkTypeface.makeEmpty())
-        result.awaitValue { it.isLoadedResult(font) }
+        advanceUntilIdle()
+        assertTrue(result.isLoaded(font))
     }
 
     @Test
-    fun preload_asyncFont_resolvesImmediatelyAfterwards() = runBlocking {
+    fun preload_asyncFont_resolvesImmediatelyAfterwards() = runTest {
         val typefaceLoader = CountingTypefaceLoader { SkTypeface.makeEmpty() }
         val font = AsyncTestFont("resolver-preload", typefaceLoader)
         val resolver = createResolver()
@@ -74,26 +74,26 @@ class SkikoFontResolverTest {
     }
 
     @Test
-    fun resolve_asyncFont_nullLoadIsPermanentFailure() = runBlocking {
+    fun resolve_asyncFont_nullLoadIsPermanentFailure() = runTest {
         val typefaceLoader = CountingTypefaceLoader { null }
         val font = AsyncTestFont("resolver-null", typefaceLoader)
         val resolver = createResolver()
 
         resolver.resolve(font.toFontFamily())
-        awaitCondition { typefaceLoader.loadCount == 1 }
-        repeat(10) { yield() }
+        advanceUntilIdle()
+        assertEquals(1, typefaceLoader.loadCount)
 
         // An equal font instance hits the cached failure instead of loading again.
         val sameFont = AsyncTestFont("resolver-null", typefaceLoader)
         val result = resolver.resolve(sameFont.toFontFamily())
-        repeat(10) { yield() }
+        advanceUntilIdle()
 
         assertFalse(result.isLoaded(font))
         assertEquals(1, typefaceLoader.loadCount)
     }
 
     @Test
-    fun preload_asyncFont_nullLoadThrowsIllegalStateException() = runBlocking {
+    fun preload_asyncFont_nullLoadThrowsIllegalStateException() = runTest {
         val font = AsyncTestFont("resolver-preload-null", CountingTypefaceLoader { null })
         val resolver = createResolver()
 
@@ -104,32 +104,20 @@ class SkikoFontResolverTest {
     }
 
     /**
-     * Runs async font loads on the test's event loop instead of the main dispatcher.
+     * Runs async font loads on the test dispatcher instead of the main dispatcher.
      *
      * Only the dispatcher is passed: the resolver parents its own SupervisorJob to any injected
-     * Job, and that job never completes, so passing the test's Job would keep runBlocking waiting.
+     * Job, and that job never completes, so passing the test's Job would keep runTest waiting.
      */
-    private fun CoroutineScope.createResolver(): FontFamily.Resolver =
+    private fun TestScope.createResolver(): FontFamily.Resolver =
         createPlatformFontFamilyResolver(
             SkiaFontLoader(),
             coroutineContext[ContinuationInterceptor]!!,
         )
 }
 
-private fun State<Any>.isLoaded(font: SkikoFont): Boolean = value.isLoadedResult(font)
-
-private fun Any.isLoadedResult(font: SkikoFont): Boolean =
-    (this as? FontLoadResult)?.aliases?.contains(font.cacheKey) == true
-
-private suspend fun <T> State<T>.awaitValue(predicate: (T) -> Boolean) {
-    awaitCondition { predicate(value) }
-}
-
-private suspend fun awaitCondition(condition: () -> Boolean) {
-    withTimeout(5_000) {
-        while (!condition()) yield()
-    }
-}
+private fun State<Any>.isLoaded(font: SkikoFont): Boolean =
+    (value as? FontLoadResult)?.aliases?.contains(font.cacheKey) == true
 
 private class AsyncTestFont(
     override val identity: String,

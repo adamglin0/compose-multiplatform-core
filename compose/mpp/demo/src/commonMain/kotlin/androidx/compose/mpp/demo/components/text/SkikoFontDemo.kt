@@ -52,9 +52,11 @@ import androidx.compose.ui.text.font.SkikoFont
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlin.math.roundToLong
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.withContext
 import org.jetbrains.skia.Data
 import org.jetbrains.skia.FontMgr
 import org.jetbrains.skia.Typeface
@@ -70,7 +72,7 @@ private const val SampleText =
 /**
  * Shows [FontLoadingStrategy.Async] [SkikoFont]s: text is drawn with the fallback font first and
  * reflows once the simulated load completes. All weights come from one variable font file, so
- * they share one [SkikoFont.identity] and the file is loaded only once.
+ * they share one [SkikoFont.identity], and the loader de-dups their concurrent loads.
  */
 @Composable
 fun SkikoFontDemo() {
@@ -122,25 +124,34 @@ fun SkikoFontDemo() {
     }
 }
 
-/** Loads the bundled font file after [delayMillis], imitating a slow network download. */
+/**
+ * Loads the bundled font file after [delayMillis], imitating a slow network download.
+ *
+ * Fonts with the same identity start loading at the same time when text in several weights is
+ * laid out in one frame, so they share one load per identity.
+ */
 private class DelayedResourceTypefaceLoader(
     private val delayMillis: Long,
     private val fail: Boolean,
 ) : SkikoFont.TypefaceLoader {
+    // Not tied to a caller, so cancelling one caller doesn't cancel the load the others wait for.
+    private val scope = CoroutineScope(Dispatchers.Default)
+    private val loads = mutableMapOf<String, Deferred<Typeface?>>()
 
     override fun loadBlocking(font: SkikoFont): Typeface? = null
 
-    override suspend fun awaitLoad(font: SkikoFont): Typeface? {
+    override suspend fun awaitLoad(font: SkikoFont): Typeface? =
+        loads.getOrPut(font.identity) { scope.async { load() } }.await()
+
+    private suspend fun load(): Typeface? {
         delay(delayMillis)
         if (fail) return null
         val bytes = loadResource(DemoFontFile) ?: return null
-        return withContext(Dispatchers.Default) {
-            val data = Data.makeFromBytes(bytes)
-            try {
-                FontMgr.default.makeFromData(data)
-            } finally {
-                data.close()
-            }
+        val data = Data.makeFromBytes(bytes)
+        return try {
+            FontMgr.default.makeFromData(data)
+        } finally {
+            data.close()
         }
     }
 }

@@ -30,7 +30,7 @@ import kotlin.test.assertSame
 import kotlin.test.assertTrue
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.async
-import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.yield
 import kotlinx.test.IgnoreJsTarget
 import kotlinx.test.IgnoreWasmTarget
@@ -194,88 +194,84 @@ class SkiaFontLoaderSkikoFontTest {
     }
 
     @Test
-    fun awaitLoad_sameBaseDifferentVariation_loadsUnvariedOnce() {
-        runBlocking {
-            var loadCount = 0
-            val typefaceLoader = object : SkikoFont.TypefaceLoader {
-                override fun loadBlocking(font: SkikoFont): SkTypeface? =
-                    error("should not be called")
+    fun awaitLoad_sameBaseDifferentVariation_loadsUnvariedOnce() = runTest {
+        var loadCount = 0
+        val typefaceLoader = object : SkikoFont.TypefaceLoader {
+            override fun loadBlocking(font: SkikoFont): SkTypeface? =
+                error("should not be called")
 
-                override suspend fun awaitLoad(font: SkikoFont): SkTypeface {
-                    loadCount++
-                    return SkTypeface.makeEmpty()
-                }
+            override suspend fun awaitLoad(font: SkikoFont): SkTypeface {
+                loadCount++
+                return SkTypeface.makeEmpty()
             }
-            val fontA = createTestFont(
-                identity = "shared-base-async",
-                typefaceLoader = typefaceLoader,
-                variationSettings = FontVariation.Settings(FontVariation.Setting("wght", 400f)),
-            )
-            val fontB = createTestFont(
-                identity = "shared-base-async",
-                typefaceLoader = typefaceLoader,
-                variationSettings = FontVariation.Settings(FontVariation.Setting("wght", 700f)),
-            )
-            assertEquals(fontA.baseCacheKey, fontB.baseCacheKey)
-            val resultA = loader.awaitLoad(fontA) as FontLoadResult
-            val resultB = loader.awaitLoad(fontB) as FontLoadResult
-            assertEquals(1, loadCount)
-            assertEquals(fontA.cacheKey, resultA.aliases.first())
-            assertEquals(fontB.cacheKey, resultB.aliases.first())
-            assertNotNull(resultA.typeface)
-            assertNotNull(resultB.typeface)
         }
+        val fontA = createTestFont(
+            identity = "shared-base-async",
+            typefaceLoader = typefaceLoader,
+            variationSettings = FontVariation.Settings(FontVariation.Setting("wght", 400f)),
+        )
+        val fontB = createTestFont(
+            identity = "shared-base-async",
+            typefaceLoader = typefaceLoader,
+            variationSettings = FontVariation.Settings(FontVariation.Setting("wght", 700f)),
+        )
+        assertEquals(fontA.baseCacheKey, fontB.baseCacheKey)
+        val resultA = loader.awaitLoad(fontA) as FontLoadResult
+        val resultB = loader.awaitLoad(fontB) as FontLoadResult
+        assertEquals(1, loadCount)
+        assertEquals(fontA.cacheKey, resultA.aliases.first())
+        assertEquals(fontB.cacheKey, resultB.aliases.first())
+        assertNotNull(resultA.typeface)
+        assertNotNull(resultB.typeface)
     }
 
     @Test
-    fun awaitLoad_concurrentSameIdentity_secondLoadClonesFromCachedBase() {
-        runBlocking {
-            val typefaces = mapOf(
-                FontWeight.Normal to SkTypeface.makeEmpty(),
-                FontWeight.Bold to SkTypeface.makeEmpty(),
-            )
-            val gates = typefaces.mapValues { CompletableDeferred<Unit>() }
-            val requested = mutableListOf<FontWeight>()
-            val typefaceLoader = object : SkikoFont.TypefaceLoader {
-                override fun loadBlocking(font: SkikoFont): SkTypeface? =
-                    error("should not be called")
+    fun awaitLoad_concurrentSameIdentity_secondLoadClonesFromCachedBase() = runTest {
+        val typefaces = mapOf(
+            FontWeight.Normal to SkTypeface.makeEmpty(),
+            FontWeight.Bold to SkTypeface.makeEmpty(),
+        )
+        val gates = typefaces.mapValues { CompletableDeferred<Unit>() }
+        val requested = mutableListOf<FontWeight>()
+        val typefaceLoader = object : SkikoFont.TypefaceLoader {
+            override fun loadBlocking(font: SkikoFont): SkTypeface? =
+                error("should not be called")
 
-                override suspend fun awaitLoad(font: SkikoFont): SkTypeface {
-                    requested += font.weight
-                    gates.getValue(font.weight).await()
-                    return typefaces.getValue(font.weight)
-                }
+            override suspend fun awaitLoad(font: SkikoFont): SkTypeface {
+                requested += font.weight
+                gates.getValue(font.weight).await()
+                return typefaces.getValue(font.weight)
             }
-            // Empty variation settings: the clone is the base face itself, so the result shows
-            // which unvaried face it was made from.
-            val regular = createTestFont(
-                identity = "concurrent-base",
-                weight = FontWeight.Normal,
-                loadingStrategy = FontLoadingStrategy.Async,
-                typefaceLoader = typefaceLoader,
-            )
-            val bold = createTestFont(
-                identity = "concurrent-base",
-                weight = FontWeight.Bold,
-                loadingStrategy = FontLoadingStrategy.Async,
-                typefaceLoader = typefaceLoader,
-            )
-
-            // Both loads miss the base cache and suspend in the TypefaceLoader.
-            val regularLoad = async { loader.awaitLoad(regular) as FontLoadResult }
-            val boldLoad = async { loader.awaitLoad(bold) as FontLoadResult }
-            yield()
-            assertEquals(listOf(FontWeight.Normal, FontWeight.Bold), requested)
-
-            gates.getValue(FontWeight.Normal).complete(Unit)
-            val regularResult = regularLoad.await()
-            gates.getValue(FontWeight.Bold).complete(Unit)
-            val boldResult = boldLoad.await()
-
-            val regularFace = typefaces.getValue(FontWeight.Normal)
-            assertSame(regularFace, regularResult.typeface)
-            assertSame(regularFace, boldResult.typeface)
         }
+        // Empty variation settings: the clone is the base face itself, so the result shows
+        // which unvaried face it was made from.
+        val regular = createTestFont(
+            identity = "concurrent-base",
+            weight = FontWeight.Normal,
+            loadingStrategy = FontLoadingStrategy.Async,
+            typefaceLoader = typefaceLoader,
+        )
+        val bold = createTestFont(
+            identity = "concurrent-base",
+            weight = FontWeight.Bold,
+            loadingStrategy = FontLoadingStrategy.Async,
+            typefaceLoader = typefaceLoader,
+        )
+
+        // Both loads miss the base cache and suspend in the TypefaceLoader.
+        val regularLoad = async { loader.awaitLoad(regular) as FontLoadResult }
+        val boldLoad = async { loader.awaitLoad(bold) as FontLoadResult }
+        yield()
+        assertEquals(listOf(FontWeight.Normal, FontWeight.Bold), requested)
+
+        gates.getValue(FontWeight.Normal).complete(Unit)
+        val regularResult = regularLoad.await()
+        gates.getValue(FontWeight.Bold).complete(Unit)
+        val boldResult = boldLoad.await()
+
+        val regularFace = typefaces.getValue(FontWeight.Normal)
+        assertSame(regularFace, regularResult.typeface)
+        assertSame(regularFace, boldResult.typeface)
     }
 
     @Test
@@ -299,107 +295,93 @@ class SkiaFontLoaderSkikoFontTest {
     // --- awaitLoad ---
 
     @Test
-    fun awaitLoad_skikoFont_returnsNonNull() {
-        runBlocking {
-            val font = createTestFont()
-            val result = loader.awaitLoad(font) as? FontLoadResult
-            assertNotNull(result)
-            assertNotNull(result.typeface)
-        }
+    fun awaitLoad_skikoFont_returnsNonNull() = runTest {
+        val font = createTestFont()
+        val result = loader.awaitLoad(font) as? FontLoadResult
+        assertNotNull(result)
+        assertNotNull(result.typeface)
     }
 
     @Test
-    fun awaitLoad_nullUnvaried_isNotCached() {
-        runBlocking {
-            var loadCount = 0
-            val typefaceLoader = object : SkikoFont.TypefaceLoader {
-                override fun loadBlocking(font: SkikoFont): SkTypeface? =
-                    error("should not be called")
+    fun awaitLoad_nullUnvaried_isNotCached() = runTest {
+        var loadCount = 0
+        val typefaceLoader = object : SkikoFont.TypefaceLoader {
+            override fun loadBlocking(font: SkikoFont): SkTypeface? =
+                error("should not be called")
 
-                override suspend fun awaitLoad(font: SkikoFont): SkTypeface? {
-                    loadCount++
-                    return if (loadCount == 1) null else SkTypeface.makeEmpty()
-                }
+            override suspend fun awaitLoad(font: SkikoFont): SkTypeface? {
+                loadCount++
+                return if (loadCount == 1) null else SkTypeface.makeEmpty()
             }
-            val font = createTestFont(
-                identity = "nullable-base-async",
-                typefaceLoader = typefaceLoader,
-            )
-            assertNull(loader.awaitLoad(font))
-            val second = loader.awaitLoad(font) as? FontLoadResult
-            assertNotNull(second)
-            assertEquals(2, loadCount)
         }
+        val font = createTestFont(
+            identity = "nullable-base-async",
+            typefaceLoader = typefaceLoader,
+        )
+        assertNull(loader.awaitLoad(font))
+        val second = loader.awaitLoad(font) as? FontLoadResult
+        assertNotNull(second)
+        assertEquals(2, loadCount)
     }
 
     @Test
-    fun awaitLoad_skikoFont_returnsNullWhenLoaderReturnsNull() {
-        runBlocking {
-            val font = createTestFont(
-                typefaceLoader = object : SkikoFont.TypefaceLoader {
-                    override fun loadBlocking(font: SkikoFont): SkTypeface? = null
-                    override suspend fun awaitLoad(font: SkikoFont): SkTypeface? = null
-                }
-            )
-            val result = loader.awaitLoad(font)
-            assertNull(result)
-        }
-    }
-
-    @Test
-    fun awaitLoad_skikoFont_resultAliasesContainCacheKey() {
-        runBlocking {
-            val font = createTestFont(identity = "async-font")
-            val result = loader.awaitLoad(font) as FontLoadResult
-            assertEquals(1, result.aliases.size)
-            assertEquals(font.cacheKey, result.aliases.first())
-        }
-    }
-
-    @Test
-    fun awaitLoad_skikoFont_usesAwaitLoadOfTypefaceLoader() {
-        runBlocking {
-            var awaitLoadCalled = false
-            val typefaceLoader = object : SkikoFont.TypefaceLoader {
-                override fun loadBlocking(font: SkikoFont): SkTypeface? =
-                    error("should not be called")
-
-                override suspend fun awaitLoad(font: SkikoFont): SkTypeface {
-                    awaitLoadCalled = true
-                    return SkTypeface.makeEmpty()
-                }
+    fun awaitLoad_skikoFont_returnsNullWhenLoaderReturnsNull() = runTest {
+        val font = createTestFont(
+            typefaceLoader = object : SkikoFont.TypefaceLoader {
+                override fun loadBlocking(font: SkikoFont): SkTypeface? = null
+                override suspend fun awaitLoad(font: SkikoFont): SkTypeface? = null
             }
-            val font = createTestFont(typefaceLoader = typefaceLoader)
+        )
+        val result = loader.awaitLoad(font)
+        assertNull(result)
+    }
+
+    @Test
+    fun awaitLoad_skikoFont_resultAliasesContainCacheKey() = runTest {
+        val font = createTestFont(identity = "async-font")
+        val result = loader.awaitLoad(font) as FontLoadResult
+        assertEquals(1, result.aliases.size)
+        assertEquals(font.cacheKey, result.aliases.first())
+    }
+
+    @Test
+    fun awaitLoad_skikoFont_usesAwaitLoadOfTypefaceLoader() = runTest {
+        var awaitLoadCalled = false
+        val typefaceLoader = object : SkikoFont.TypefaceLoader {
+            override fun loadBlocking(font: SkikoFont): SkTypeface? =
+                error("should not be called")
+
+            override suspend fun awaitLoad(font: SkikoFont): SkTypeface {
+                awaitLoadCalled = true
+                return SkTypeface.makeEmpty()
+            }
+        }
+        val font = createTestFont(typefaceLoader = typefaceLoader)
+        loader.awaitLoad(font)
+        assertTrue(
+            awaitLoadCalled,
+            "awaitLoad should call TypefaceLoader.awaitLoad, not loadBlocking"
+        )
+    }
+
+    @Test
+    fun awaitLoad_skikoFont_withVariationSettings_returnsNonNull() = runTest {
+        val settings = FontVariation.Settings(FontVariation.Setting("wght", 600f))
+        val font = createTestFont(identity = "async-var-font", variationSettings = settings)
+        val result = loader.awaitLoad(font) as? FontLoadResult
+        assertNotNull(result)
+        assertNotNull(result.typeface)
+    }
+
+    @Test
+    fun awaitLoad_unknownFont_throws() = runTest {
+        val font = object : Font {
+            override val weight: FontWeight = FontWeight.Normal
+            override val style: FontStyle = FontStyle.Normal
+            override val loadingStrategy: FontLoadingStrategy = FontLoadingStrategy.Blocking
+        }
+        assertFailsWith<IllegalArgumentException> {
             loader.awaitLoad(font)
-            assertTrue(
-                awaitLoadCalled,
-                "awaitLoad should call TypefaceLoader.awaitLoad, not loadBlocking"
-            )
-        }
-    }
-
-    @Test
-    fun awaitLoad_skikoFont_withVariationSettings_returnsNonNull() {
-        runBlocking {
-            val settings = FontVariation.Settings(FontVariation.Setting("wght", 600f))
-            val font = createTestFont(identity = "async-var-font", variationSettings = settings)
-            val result = loader.awaitLoad(font) as? FontLoadResult
-            assertNotNull(result)
-            assertNotNull(result.typeface)
-        }
-    }
-
-    @Test
-    fun awaitLoad_unknownFont_throws() {
-        runBlocking {
-            val font = object : Font {
-                override val weight: FontWeight = FontWeight.Normal
-                override val style: FontStyle = FontStyle.Normal
-                override val loadingStrategy: FontLoadingStrategy = FontLoadingStrategy.Blocking
-            }
-            assertFailsWith<IllegalArgumentException> {
-                loader.awaitLoad(font)
-            }
         }
     }
 
